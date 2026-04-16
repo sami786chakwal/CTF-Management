@@ -1,6 +1,6 @@
 # ⚡ CTF Management System
 
-A complete, production-ready CTF event management system built with **Next.js** — deployable on **Vercel** in minutes.
+A complete, production-ready CTF event management system built with **Next.js** — deployable on **Vercel** in minutes
 
 ---
 
