@@ -20,6 +20,14 @@ function StatCard({ icon: Icon, label, value, sub, color = "text-cyber-400" }) {
 export default function Dashboard({ teams, settings }) {
   const total = teams.length;
   const feeVerified = teams.filter(t => t.feeVerified).length;
+  const ctfdRegistered = teams.filter(t =>
+    !!(
+      t.ctfdAccount?.team?.id ||
+      t.ctfdAccount?.leader?.status === 'registered' ||
+      t.ctfdAccount?.p2?.status === 'registered' ||
+      t.ctfdAccount?.p3?.status === 'registered'
+    )
+  ).length;
   const day1 = teams.filter(t => t.attendance?.day1).length;
   const day2 = teams.filter(t => t.attendance?.day2).length;
   const foodDay1 = teams.filter(t => t.food?.day1).length;
@@ -52,6 +60,7 @@ export default function Dashboard({ teams, settings }) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon={Users} label="Total Teams" value={total} sub={`${totalPlayers} players`} color="text-cyber-400" />
         <StatCard icon={ShieldCheck} label="Fee Verified" value={feeVerified} sub={`${total - feeVerified} pending`} color="text-emerald-400" />
+        <StatCard icon={ShieldCheck} label="CTFd Teams" value={ctfdRegistered} sub="Registered on CTFd" color="text-sky-400" />
         <StatCard icon={UserCheck} label={`${settings.day1Label || "Day 1"} Present`} value={day1} sub={`${day1Players} players`} color="text-blue-400" />
         {showDay2 && <StatCard icon={UserCheck} label={`${settings.day2Label || "Day 2"} Present`} value={day2} sub={`${day2 * 3} players`} color="text-violet-400" />}
         <StatCard icon={UtensilsCrossed} label="Food Given" value={showDay2 ? `${foodDay1}/${foodDay2}` : foodDay1.toString()} sub={showDay2 ? "Day1/Day2 teams" : "Day1 teams"} color="text-amber-400" />

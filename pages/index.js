@@ -1,6 +1,7 @@
 // pages/index.js - CLEAN FINAL VERSION
 import { useState, useEffect } from "react";
 import Head from "next/head";
+import toast from "react-hot-toast";
 import {
   LayoutDashboard, Users, TableProperties, BarChart3,
   Settings, Upload, LogOut, Terminal, Menu, X, UtensilsCrossed, Shield
@@ -160,7 +161,7 @@ export default function Home() {
         {/* Main Content */}
         <main className="flex-1 p-6">
           {tab === "dashboard" && <Dashboard teams={teams} settings={settings} />}
-          {tab === "teams" && <TeamsView teams={teams} settings={settings} onUpdate={updateTeam} onDelete={deleteTeam} onEmailOpen={setEmailModal} />}
+          {tab === "teams" && <TeamsView teams={teams} settings={settings} onUpdate={updateTeam} onDelete={deleteTeam} onEmailOpen={(team, initialTab = "confirmation") => setEmailModal({ team, initialTab })} />}
           {tab === "food" && <FoodView teams={teams} settings={settings} onUpdate={updateTeam} />}
           {tab === "food-edit" && <FoodEditView teams={teams} settings={settings} onUpdate={updateTeam} />}
           {tab === "import" && <ImportView teams={teams} onImport={importTeams} />}
@@ -170,7 +171,7 @@ export default function Home() {
         </main>
       </div>
 
-      {emailModal && <EmailModal team={emailModal} settings={settings} onClose={() => setEmailModal(null)} onMarkSent={(id, type) => updateTeam(id, { emailSent: { ...teams.find(t => t.id === id)?.emailSent, [type]: true } })} />}
+      {emailModal && <EmailModal team={emailModal.team} initialTab={emailModal.initialTab} settings={settings} onClose={() => setEmailModal(null)} onMarkSent={(id, type) => updateTeam(id, { emailSent: { ...teams.find(t => t.id === id)?.emailSent, [type]: true } })} />}
     </>
   );
 }

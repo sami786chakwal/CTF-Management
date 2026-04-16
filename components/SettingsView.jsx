@@ -215,15 +215,144 @@ export default function SettingsView({ settings, onSave, onClearAll, teamsCount 
             <label className="text-xs text-slate-400 mb-1 block">Confirmation Email Body</label>
             <textarea 
               className="cyber-input min-h-[100px] text-xs"
-              value={form.emailBodyConfirm || "Dear Team Leader,\n\nYour team has been registered successfully.\n\nBest regards,\nEvent Team"}
+              value={form.emailBodyConfirm || settings.emailBodyConfirm || "Dear {{leaderName}},\n\nYour team has been registered successfully for {{eventName}}.\n\nBest regards,\nEvent Team"}
               onChange={e => set("emailBodyConfirm", e.target.value)}
               placeholder="Email body (use {{teamName}}, {{leaderName}}, {{eventName}} for placeholders)"
             />
           </div>
-         <div className="text-xs text-slate-500">
-  Available placeholders:
-  {' {{teamName}}, {{leaderName}}, {{eventName}}, {{tableNumber}}'}
-</div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Day 2 Reminder Subject</label>
+            <input
+              className="cyber-input"
+              value={form.emailSubjectReminder || settings.emailSubjectReminder || `⚡ Reminder — ${settings.eventName} Tomorrow!`}
+              onChange={e => set("emailSubjectReminder", e.target.value)}
+              placeholder="Reminder email subject"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Day 2 Reminder Body</label>
+            <textarea
+              className="cyber-input min-h-[100px] text-xs"
+              value={form.emailBodyReminder || settings.emailBodyReminder || "Dear {{leaderName}},\n\nDon't forget! {{eventName}} is happening tomorrow.\n\nPlease arrive on time and bring your student ID.\n\nGood luck!"}
+              onChange={e => set("emailBodyReminder", e.target.value)}
+              placeholder="Reminder email body"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Credentials Email Subject</label>
+            <input
+              className="cyber-input"
+              value={form.emailSubjectCredentials || settings.emailSubjectCredentials || `Your CTFd Login for ${settings.eventName}`}
+              onChange={e => set("emailSubjectCredentials", e.target.value)}
+              placeholder="Credentials email subject"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Credentials Email Body</label>
+            <textarea
+              className="cyber-input min-h-[140px] text-xs"
+              value={form.emailBodyCredentials || settings.emailBodyCredentials || "Hello {{leaderName}},\n\nYour team has been successfully registered for {{eventName}}.\n\nUsername: {{ctfdUsername}}\nPassword: {{ctfdPassword}}\nPlatform: {{ctfdUrl}}\n\nGood luck!"}
+              onChange={e => set("emailBodyCredentials", e.target.value)}
+              placeholder="Email body for CTFd credentials (use {{leaderName}}, {{eventName}}, {{ctfdUsername}}, {{ctfdPassword}}, {{ctfdUrl}})"
+            />
+          </div>
+          <div className="text-xs text-slate-500">
+            Available placeholders: {"{{teamName}}, {{leaderName}}, {{eventName}}, {{tableNumber}}, {{ctfdUsername}}, {{ctfdPassword}}, {{ctfdUrl}}"}
+          </div>
+        </div>
+      </div>
+
+      {/* CTFd Registration */}
+      <div className="cyber-card rounded-xl p-5">
+        <h3 className="text-sm font-display font-semibold text-cyber-400 mb-4 tracking-wide uppercase flex items-center gap-2">
+          <Shield size={14} /> CTFd Registration
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">CTFd Base URL</label>
+            <input
+              className="cyber-input"
+              type="url"
+              value={form.ctfdUrl || ""}
+              onChange={e => set("ctfdUrl", e.target.value)}
+              placeholder="https://ctfd.example.com"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">CTFd Admin Token</label>
+            <input
+              className="cyber-input"
+              type="password"
+              value={form.ctfdAdminToken || ""}
+              onChange={e => set("ctfdAdminToken", e.target.value)}
+              placeholder="CTFd admin API token"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">CTFd Username Prefix</label>
+            <input
+              className="cyber-input"
+              value={form.ctfdTeamPrefix || "team"}
+              onChange={e => set("ctfdTeamPrefix", e.target.value)}
+              placeholder="team"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Event Details for Credentials */}
+      <div className="cyber-card rounded-xl p-5">
+        <h3 className="text-sm font-display font-semibold text-cyber-400 mb-4 tracking-wide uppercase flex items-center gap-2">
+          <Calendar size={14} /> Event Information for Credentials Email
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Event Date & Time</label>
+            <input
+              className="cyber-input"
+              value={form.eventDate || "Wed, 22 April 2026 | 10:00 AM – 2:00 PM"}
+              onChange={e => set("eventDate", e.target.value)}
+              placeholder="Wed, 22 April 2026 | 10:00 AM – 2:00 PM"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Event Venue</label>
+            <input
+              className="cyber-input"
+              value={form.eventVenue || "Block A (A-114), Riphah I-14 Campus"}
+              onChange={e => set("eventVenue", e.target.value)}
+              placeholder="Block A (A-114), Riphah I-14 Campus"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Last Registration Date</label>
+            <input
+              className="cyber-input"
+              value={form.lastRegisterDate || "20th April, 2026"}
+              onChange={e => set("lastRegisterDate", e.target.value)}
+              placeholder="20th April, 2026"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">CTFd Platform URL</label>
+            <input
+              className="cyber-input"
+              type="url"
+              value={form.platformUrl || "https://ctf.stealthwormctf.sbs"}
+              onChange={e => set("platformUrl", e.target.value)}
+              placeholder="https://ctf.stealthwormctf.sbs"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Discord Support Link</label>
+            <input
+              className="cyber-input"
+              type="url"
+              value={form.discordUrl || "https://discord.com/invite/89tDPnqnqN"}
+              onChange={e => set("discordUrl", e.target.value)}
+              placeholder="https://discord.com/invite/..."
+            />
+          </div>
         </div>
       </div>
 

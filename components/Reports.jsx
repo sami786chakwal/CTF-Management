@@ -184,6 +184,48 @@ function generatePDFHTML(type, teams, settings) {
     </body></html>`;
   }
 
+  if (type === "credentials") {
+    return `<html><head><meta charset="utf-8"><style>
+      body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px;color:#0f172a;background:#0b1120}
+      h1{font-size:22px;margin-bottom:4px;color:#38bdf8;}
+      .meta{font-size:11px;color:#94a3b8;margin-bottom:16px}
+      table{width:100%;border-collapse:collapse}
+      th,td{border:1px solid #1e293b}
+      .strong{font-weight:700;color:#0f172a}
+    </style></head><body>
+    <h1>${settings.eventName} — CTFd Credentials</h1>
+    <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
+    <table>
+      <thead><tr>
+        <th style="${th}">Team Name</th>
+        <th style="${th}">Member Name</th>
+        <th style="${th}">Role</th>
+        <th style="${th}">SAP ID</th>
+        <th style="${th}">Email</th>
+        <th style="${th}">CTFd Username</th>
+        <th style="${th}">CTFd Password</th>
+      </tr></thead>
+      <tbody>
+        ${teams.flatMap(t => {
+          const members = [];
+          if (t.ctfdAccount?.leader) members.push({ ...t.ctfdAccount.leader, role: "Leader", displayName: t.ctfdAccount.leader.name || t.leader.name });
+          if (t.ctfdAccount?.p2) members.push({ ...t.ctfdAccount.p2, role: "Player 2", displayName: t.ctfdAccount.p2.name || t.p2?.name });
+          if (t.ctfdAccount?.p3) members.push({ ...t.ctfdAccount.p3, role: "Player 3", displayName: t.ctfdAccount.p3.name || t.p3?.name });
+          return members.map((m, idx) => row([
+            idx === 0 ? t.teamName : "",
+            m.displayName || m.name || "—",
+            m.role,
+            m.sap || "—",
+            m.email || "—",
+            m.username,
+            m.password,
+          ], idx));
+        }).join("")}
+      </tbody>
+    </table>
+    </body></html>`;
+  }
+
   if (type === "absent_members") {
     return `<html><head><meta charset="utf-8"><style>
       body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px;color:#0f172a;background:#0b1120}
@@ -368,6 +410,7 @@ export default function Reports({ teams, settings }) {
     { key: "absent_members", title: "Absent Members", desc: "Day-wise absent players per team", icon: "🚫" },
     { key: "table_card", title: "Table Cards", desc: "Simple print-ready cards for placing on registration tables", icon: "🗳️" },
     { key: "team_cards", title: "Attendance Cards", desc: "Modern cyber cards with attendance & member status", icon: "🃏" },
+    { key: "credentials", title: "CTFd Credentials", desc: "Username/password list for registered CTFd users", icon: "🔑" },
     { key: "players", title: "Full Player List", desc: "Individual player rows with SAP IDs and emails", icon: "👤" },
     { key: "teams_full", title: "Complete Registry", desc: "All fields including notes, table, fee, attendance", icon: "🗂️" },
   ];

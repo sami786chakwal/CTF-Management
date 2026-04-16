@@ -14,8 +14,22 @@ export const DEFAULT_SETTINGS = {
   totalTables: 20,
   day1Date: "",
   day2Date: "",
+  eventDate: "Wed, 22 April 2026 | 10:00 AM – 2:00 PM",
+  eventVenue: "Block A (A-114), Riphah I-14 Campus",
+  lastRegisterDate: "20th April, 2026",
+  platformUrl: "https://ctf.stealthwormctf.sbs",
+  discordUrl: "https://discord.com/invite/89tDPnqnqN",
   smtpEmail: "",
   smtpPassword: "",
+  ctfdUrl: "",
+  ctfdAdminToken: "",
+  ctfdTeamPrefix: "team",
+  emailSubjectCredentials: "Your CTFd Login for {{eventName}}",
+  emailBodyCredentials: "Hello {{leaderName}},\n\nYour team has been successfully registered for {{eventName}}.\nUse the login below to access the CTFd platform:\n\nUsername: {{ctfdUsername}}\nPassword: {{ctfdPassword}}\nPlatform: {{ctfdUrl}}\n\nLogin with your provided credentials and keep them safe.\n\nGood luck,\nEvent Team",
+  emailSubjectConfirm: "🎉 Registration Confirmed — {{teamName}} | {{eventName}}",
+  emailBodyConfirm: "Dear {{leaderName}},\n\nYour team has been registered successfully for {{eventName}}.\n\nBest regards,\nEvent Team",
+  emailSubjectReminder: "⚡ Reminder — {{eventName}} Tomorrow!",
+  emailBodyReminder: "Dear {{leaderName}},\n\nDon't forget! {{eventName}} is happening tomorrow.\n\nPlease arrive on time and bring your student ID.\n\nGood luck!",
   events: [] // New field for events
 };
 

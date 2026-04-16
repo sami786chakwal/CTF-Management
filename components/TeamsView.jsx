@@ -2,7 +2,7 @@
 import { useState } from "react";
 import {
   Search, CheckCircle2, XCircle, Utensils, Edit3, Trash2,
-  ChevronDown, ChevronUp, ExternalLink, Mail, TableProperties,
+  ChevronDown, ChevronUp, ExternalLink, Mail, Key, TableProperties,
   RotateCcw, Clock, ShieldCheck, AlertCircle
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -49,6 +49,8 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
   const [tableInput, setTableInput] = useState(team.tableNumber || "");
   const [editNotes, setEditNotes] = useState(false);
   const [notesInput, setNotesInput] = useState(team.notes || "");
+  const [registering, setRegistering] = useState(false);
+  const [unregistering, setUnregistering] = useState(false);
 
   const memberRoles = ["leader", "p2", "p3"];
   const formatAbsentList = (day, memberAttendance = team.memberAttendance || {}) => {
@@ -124,6 +126,242 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
     );
   };
 
+  const normalizeForUsername = (value) =>
+    (value || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+  const generateCTFdUsername = (name, sap, role = "") => {
+    const baseName = normalizeForUsername(name).slice(0, 15) || `user${role}`;
+    const suffix = (sap || "").replace(/\D/g, "").slice(-3) || Math.random().toString(36).slice(2, 5);
+    return `${baseName}_${suffix}`.replace(/__+/g, "_").slice(0, 32);
+  };
+
+  const generateCTFdPassword = () => Math.random().toString(36).slice(2, 10);
+
+  const extractCtfdId = (data) => {
+    if (!data || typeof data !== "object") return null;
+    return (
+      data.id ||
+      data.team_id ||
+      data?.team?.id ||
+      data?.data?.id ||
+      data?.data?.team?.id ||
+      data?.data?.data?.id ||
+      data?.data?.team_id ||
+      null
+    );
+  };
+
+  const registerToCTFD = async () => {
+    if (!settings.ctfdUrl || !settings.ctfdAdminToken) {
+      toast.error("Configure CTFd URL and admin token in Settings first.");
+      return;
+    }
+
+    const toRegister = [
+      { role: "leader", data: team.leader, email: team.leader.email },
+      team.p2?.name && { role: "p2", data: team.p2, email: team.p2.email },
+      team.p3?.name && { role: "p3", data: team.p3, email: team.p3.email },
+    ].filter(Boolean);
+
+    if (!toRegister.some(m => m.email)) {
+      toast.error("At least the team leader must have an email.");
+      return;
+    }
+
+    setRegistering(true);
+
+    let ctfdTeamId = team.ctfdAccount?.team?.id;
+    const ctfdTeam = team.ctfdAccount?.team || {
+      name: team.teamName,
+      captain: team.leader.name,
+    };
+    let staleRegistration = false;
+
+    if (ctfdTeamId) {
+      try {
+        const verifyResp = await fetch("/api/ctfd-register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ctfdUrl: settings.ctfdUrl,
+            adminToken: settings.ctfdAdminToken,
+            teamId: ctfdTeamId,
+            checkTeamId: true,
+          }),
+        });
+        const verifyData = await verifyResp.json();
+        if (!verifyResp.ok) {
+          const errorMsg = typeof verifyData.error === 'string' ? verifyData.error : JSON.stringify(verifyData.error) || "Team verification failed";
+          throw new Error(errorMsg);
+        }
+      } catch (error) {
+        console.warn("Stored CTFd team ID is invalid, recreating team:", error.message);
+        ctfdTeamId = null;
+        staleRegistration = true;
+      }
+    }
+
+    if (staleRegistration && team.ctfdAccount) {
+      try {
+        const staleUserIds = [
+          team.ctfdAccount?.leader?.id,
+          team.ctfdAccount?.p2?.id,
+          team.ctfdAccount?.p3?.id,
+        ].filter(Boolean);
+        const staleTeamId = team.ctfdAccount?.team?.id || null;
+        if (staleUserIds.length || staleTeamId) {
+          const cleanupResp = await fetch("/api/ctfd-unregister", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ctfdUrl: settings.ctfdUrl,
+              adminToken: settings.ctfdAdminToken,
+              userIds: staleUserIds,
+              teamId: staleTeamId,
+              deleteTeam: true,
+            }),
+          });
+          if (!cleanupResp.ok) {
+            const cleanupData = await cleanupResp.json().catch(() => ({}));
+            console.warn("Stale CTFd cleanup failed:", cleanupData.error || cleanupResp.statusText);
+          }
+        }
+      } catch (cleanupError) {
+        console.warn("Stale CTFd cleanup failed:", cleanupError);
+      }
+      onUpdate(team.id, { ctfdAccount: null });
+    }
+
+    if (!ctfdTeamId && team.teamName) {
+      try {
+        const teamResp = await fetch("/api/ctfd-register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ctfdUrl: settings.ctfdUrl,
+            adminToken: settings.ctfdAdminToken,
+            teamName: team.teamName,
+            createTeam: true,
+          }),
+        });
+        const teamData = await teamResp.json();
+        if (!teamResp.ok) {
+          const errorMsg = typeof teamData.error === 'string' ? teamData.error : JSON.stringify(teamData.error) || "Failed to create CTFd team";
+          throw new Error(errorMsg);
+        }
+        ctfdTeamId = extractCtfdId(teamData);
+        if (!ctfdTeamId) {
+          console.error("CTFd team creation response:", teamData);
+          throw new Error("CTFd created the team, but no team ID was returned.");
+        }
+      } catch (error) {
+        console.error("CTFd team creation error:", error);
+        toast.error(`Could not create team ${team.teamName} on CTFd: ${error.message}`);
+        setRegistering(false);
+        return;
+      }
+    }
+
+    const credentials = {};
+    let successCount = 0;
+    let leaderCtfdUserId = null;
+
+    for (const member of toRegister) {
+      if (!member.email) continue;
+
+      const username =
+        team.ctfdAccount?.[member.role]?.username ||
+        generateCTFdUsername(member.data.name, member.data.sap, member.role);
+      const password = team.ctfdAccount?.[member.role]?.password || generateCTFdPassword();
+
+      try {
+        const response = await fetch("/api/ctfd-register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ctfdUrl: settings.ctfdUrl,
+            adminToken: settings.ctfdAdminToken,
+            username,
+            password,
+            name: member.data.name,
+            email: member.email,
+            teamId: ctfdTeamId,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          const errorMsg = typeof data?.error === 'string' ? data?.error : JSON.stringify(data?.error) || `Failed to register ${member.role}`;
+          throw new Error(errorMsg);
+        }
+        const userId = extractCtfdId(data);
+        if (member.role === "leader") {
+          leaderCtfdUserId = userId;
+        }
+        credentials[member.role] = {
+          id: userId,
+          username,
+          password,
+          name: member.data.name,
+          email: member.email,
+          sap: member.data.sap,
+          role: member.role === "leader" ? "Captain" : member.role.toUpperCase(),
+          registeredAt: new Date().toISOString(),
+          platformUrl: settings.ctfdUrl,
+          status: "registered",
+        };
+        successCount++;
+      } catch (error) {
+        console.error(`Error registering ${member.role}:`, error);
+        toast.error(`Failed to register ${member.data.name}: ${error.message}`);
+      }
+    }
+
+    if (successCount > 0) {
+      const ctfdAccount = team.ctfdAccount || {};
+      if (!ctfdAccount.team) {
+        ctfdAccount.team = {
+          id: ctfdTeamId,
+          name: team.teamName,
+          captain: team.leader.name,
+          createdAt: new Date().toISOString(),
+        };
+      }
+      Object.assign(ctfdAccount, credentials);
+
+      if (leaderCtfdUserId && ctfdTeamId) {
+        try {
+          const captainResp = await fetch("/api/ctfd-register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ctfdUrl: settings.ctfdUrl,
+              adminToken: settings.ctfdAdminToken,
+              teamId: ctfdTeamId,
+              setCaptain: true,
+              captainId: leaderCtfdUserId,
+            }),
+          });
+          const captainData = await captainResp.json();
+          if (!captainResp.ok) {
+            console.warn("Failed to set CTFd captain:", captainData);
+          }
+        } catch (captainError) {
+          console.warn("CTFd captain assignment failed:", captainError);
+        }
+      }
+
+      onUpdate(team.id, { ctfdAccount });
+      toast.success(`Successfully registered ${successCount} team member(s) on CTFd`);
+    }
+
+    setRegistering(false);
+  };
+
   const saveTable = () => {
     onUpdate(team.id, { tableNumber: tableInput });
     setEditTable(false);
@@ -134,6 +372,60 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
     onUpdate(team.id, { notes: notesInput });
     setEditNotes(false);
     toast.success("Notes saved");
+  };
+
+  const isRegisteredOnCTFD = !!(
+    team.ctfdAccount?.team?.id ||
+    team.ctfdAccount?.leader?.id ||
+    team.ctfdAccount?.leader?.username ||
+    team.ctfdAccount?.p2?.id ||
+    team.ctfdAccount?.p3?.id
+  );
+
+  const unregisterFromCTFD = async () => {
+    if (!settings.ctfdUrl || !settings.ctfdAdminToken) {
+      toast.error("Configure CTFd URL and admin token in Settings first.");
+      return;
+    }
+
+    if (!confirm("Clear CTFd registration data? This will remove saved platform credentials and allow re-registration.")) {
+      return;
+    }
+
+    const userIds = [
+      team.ctfdAccount?.leader?.id,
+      team.ctfdAccount?.p2?.id,
+      team.ctfdAccount?.p3?.id,
+    ].filter(Boolean);
+    const teamId = team.ctfdAccount?.team?.id || null;
+
+    setUnregistering(true);
+
+    try {
+      const response = await fetch("/api/ctfd-unregister", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ctfdUrl: settings.ctfdUrl,
+          adminToken: settings.ctfdAdminToken,
+          userIds,
+          teamId,
+          deleteTeam: true,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const errorMsg = typeof data?.error === 'string' ? data?.error : JSON.stringify(data?.error) || "Failed to remove registration from CTFd";
+        throw new Error(errorMsg);
+      }
+      onUpdate(team.id, { ctfdAccount: null });
+      toast.success("CTFd registration data cleared. You can register again.");
+    } catch (error) {
+      console.error("Unregister from CTFd failed:", error);
+      toast.error(error.message || "Failed to clear CTFd registration data");
+    } finally {
+      setUnregistering(false);
+    }
   };
 
   const toggleFee = () => {
@@ -223,6 +515,31 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
               <Mail size={12} />
               {(team.emailSent?.confirmation || team.emailSent?.reminder) && <span className="text-cyber-400">✓</span>}
             </button>
+
+            {/* Credentials email */}
+            <button onClick={() => onEmailOpen(team, "credentials")} className="btn-cyber text-xs py-1 px-2.5" title="Send CTFd credentials email">
+              <Key size={12} />
+            </button>
+
+            {/* CTFd register */}
+            <button
+              onClick={registerToCTFD}
+              disabled={registering}
+              className={`btn-cyber text-xs py-1 px-2.5 ${isRegisteredOnCTFD ? "bg-cyan-900/40 border-cyan-500/50 text-cyan-300" : ""}`}
+              title={isRegisteredOnCTFD ? "Re-register team on CTFd" : "Register team on CTFd"}
+            >
+              {registering ? "⌛" : "CTFd"}
+            </button>
+            {settings.ctfdUrl && (
+              <button
+                onClick={unregisterFromCTFD}
+                disabled={unregistering}
+                className="btn-cyber btn-cyber-danger text-xs py-1 px-2.5"
+                title="Clear CTFd registration data"
+              >
+                {unregistering ? "⌛" : <XCircle size={12} />}
+              </button>
+            )}
 
             {/* Fee verify */}
             <button onClick={toggleFee} className={`btn-cyber text-xs py-1 px-2.5 ${team.feeVerified ? "btn-cyber-solid" : ""}`} title="Toggle fee verification">
@@ -361,6 +678,37 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
                 )}
               </div>
 
+              {team.ctfdAccount?.leader && (
+                <div className="bg-slate-900/50 rounded-xl p-3">
+                  <div className="text-xs font-display font-semibold text-slate-500 mb-2 tracking-widest uppercase">CTFd Credentials</div>
+                  <div className="text-xs text-slate-300 space-y-2">
+                    {team.ctfdAccount?.leader && (
+                      <div className="bg-slate-800/50 rounded p-2">
+                        <div className="font-semibold text-cyan-300">{team.ctfdAccount.leader.name}</div>
+                        <div className="text-slate-400">Username: <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-xs">{team.ctfdAccount.leader.username}</code></div>
+                        <div className="text-slate-400">Password: <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-xs">{team.ctfdAccount.leader.password}</code></div>
+                      </div>
+                    )}
+                    {team.ctfdAccount?.p2 && (
+                      <div className="bg-slate-800/50 rounded p-2">
+                        <div className="font-semibold text-cyan-300">{team.ctfdAccount.p2.name}</div>
+                        <div className="text-slate-400">Username: <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-xs">{team.ctfdAccount.p2.username}</code></div>
+                        <div className="text-slate-400">Password: <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-xs">{team.ctfdAccount.p2.password}</code></div>
+                      </div>
+                    )}
+                    {team.ctfdAccount?.p3 && (
+                      <div className="bg-slate-800/50 rounded p-2">
+                        <div className="font-semibold text-cyan-300">{team.ctfdAccount.p3.name}</div>
+                        <div className="text-slate-400">Username: <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-xs">{team.ctfdAccount.p3.username}</code></div>
+                        <div className="text-slate-400">Password: <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-xs">{team.ctfdAccount.p3.password}</code></div>
+                      </div>
+                    )}
+                    {team.ctfdAccount?.leader?.platformUrl && (
+                      <div><a href={team.ctfdAccount.leader.platformUrl} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline text-xs">Open CTFd Platform</a></div>
+                    )}
+                  </div>
+                </div>
+              )}
               {team.paymentSlip && (
                 <div>
                   <div className="text-xs font-display font-semibold text-slate-500 mb-1.5 tracking-widest uppercase">Payment Slip</div>
