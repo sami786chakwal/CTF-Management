@@ -1,13 +1,45 @@
 // components/SettingsView.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, Settings, Shield, Trash2, Eye, EyeOff, Calendar, Plus, X, Mail, Link2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { saveSettings } from "../lib/store";
+import { saveSettings, parseCSV, rowToTeam, getUniqueKey } from "../lib/store";
 
-export default function SettingsView({ settings, onSave, onClearAll, teamsCount }) {
+export default function SettingsView({ settings, onSave, onClearAll, teamsCount, teams }) {
   const [form, setForm] = useState({ ...settings });
   const [showAdminPass, setShowAdminPass] = useState(false);
   const [showSmtpPass, setShowSmtpPass] = useState(false);
+
+  // Auto-sync effect
+  useEffect(() => {
+    if (!form.googleFormEnabled || !form.googleFormURL || !form.googleFormSyncInterval) {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        console.log("Auto-syncing from Google Form...");
+        const response = await fetch("/api/google-sync");
+        const data = await response.json();
+
+        if (response.ok && data.synced) {
+          // Update last sync time
+          const updatedForm = { ...form, googleFormLastSync: new Date().toISOString() };
+          setForm(updatedForm);
+          await saveSettings(updatedForm);
+
+          toast.success(`Auto-synced ${data.newTeams} new teams from Google Form`, { duration: 3000 });
+          
+          // Refresh the page to show new teams
+          setTimeout(() => window.location.reload(), 1000);
+        }
+      } catch (error) {
+        console.error("Auto-sync failed:", error);
+        // Don't show error toast for auto-sync failures to avoid spam
+      }
+    }, (form.googleFormSyncInterval || 10) * 60 * 1000); // Convert minutes to milliseconds
+
+    return () => clearInterval(interval);
+  }, [form.googleFormEnabled, form.googleFormURL, form.googleFormSyncInterval]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -382,30 +414,114 @@ export default function SettingsView({ settings, onSave, onClearAll, teamsCount 
               type="number"
               min={5}
               max={1440}
-              value={form.googleFormSyncInterval || 30}
+              value={form.googleFormSyncInterval || 10}
               onChange={e => set("googleFormSyncInterval", Number(e.target.value))}
             />
             <p className="text-xs text-slate-500 mt-2">Auto-fetch and import teams from Google Form every N minutes</p>
+            {form.googleFormLastSync && (
+              <p className="text-xs text-cyber-400 mt-1">
+                Last sync: {new Date(form.googleFormLastSync).toLocaleString()}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <button 
               onClick={async () => {
                 if (!form.googleFormURL) { toast.error("Please enter Google Form URL first"); return; }
-                toast.loading("Fetching from Google Form...");
+                toast.loading("Fetching and importing from Google Form...");
                 try {
                   const response = await fetch(form.googleFormURL);
                   const csv = await response.text();
-                  console.log("Google Form CSV:", csv.substring(0, 200));
+                  
+                  // Parse CSV using the same logic as ImportView
+                  const rows = parseCSV(csv);
+                  if (rows.length === 0) {
+                    toast.dismiss();
+                    toast.error("No valid data found in Google Form");
+                    return;
+                  }
+                  
+                  // Import teams using the same logic as ImportView
+                  const existing = new Set(teams.map(t => getUniqueKey(t)));
+                  const newRows = rows.filter(r => !existing.has(getUniqueKey({ teamName: r["Team Name"] || "", leader: { sap: r["Leader SAP ID"] || "" } })));
+                  
+                  if (newRows.length === 0) {
+                    toast.dismiss();
+                    toast.success("No new teams to import — all responses already exist");
+                    return;
+                  }
+                  
+                  const toAdd = newRows.map((r, i) => rowToTeam(r, teams.length + i));
+                  
+                  // Import via API
+                  const importResponse = await fetch("/api/import-teams", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ teams: toAdd }),
+                  });
+                  
+                  if (!importResponse.ok) {
+                    throw new Error("Failed to import teams");
+                  }
+                  
+                  // Update last sync time
+                  const updatedForm = { ...form, googleFormLastSync: new Date().toISOString() };
+                  setForm(updatedForm);
+                  await saveSettings(updatedForm);
+                  
                   toast.dismiss();
-                  toast.success("Fetched successfully! Teams will be imported on next sync.");
+                  toast.success(`Successfully imported ${toAdd.length} new team(s) from Google Form!`);
+                  
+                  // Refresh the page to show new teams
+                  window.location.reload();
                 } catch (error) {
                   toast.dismiss();
-                  toast.error("Failed to fetch Google Form. Check URL and CORS.");
+                  console.error("Google Form import error:", error);
+                  toast.error("Failed to import from Google Form: " + error.message);
                 }
               }}
               className="btn-cyber text-xs"
             >
               Test Fetch Now
+            </button>
+            <button 
+              onClick={async () => {
+                if (!form.googleFormEnabled || !form.googleFormURL) {
+                  toast.error("Auto-sync must be enabled and Google Form URL must be set");
+                  return;
+                }
+                toast.loading("Syncing from Google Form...");
+                try {
+                  const response = await fetch("/api/google-sync");
+                  const data = await response.json();
+                  
+                  if (!response.ok) {
+                    throw new Error(data.error || "Sync failed");
+                  }
+                  
+                  // Update last sync time
+                  const updatedForm = { ...form, googleFormLastSync: new Date().toISOString() };
+                  setForm(updatedForm);
+                  await saveSettings(updatedForm);
+                  
+                  toast.dismiss();
+                  if (data.synced) {
+                    toast.success(data.message);
+                    // Refresh the page to show new teams
+                    window.location.reload();
+                  } else {
+                    toast.success(data.message);
+                  }
+                } catch (error) {
+                  toast.dismiss();
+                  console.error("Google sync error:", error);
+                  toast.error("Failed to sync: " + error.message);
+                }
+              }}
+              className="btn-cyber text-xs"
+              disabled={!form.googleFormEnabled}
+            >
+              Sync Now
             </button>
             <button 
               onClick={async () => {

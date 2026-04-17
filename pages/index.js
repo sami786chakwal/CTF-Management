@@ -167,7 +167,7 @@ export default function Home() {
           {tab === "import" && <ImportView teams={teams} onImport={importTeams} />}
           {tab === "tablemap" && <TableMap teams={teams} settings={settings} onUpdate={updateTeam} />}
           {tab === "reports" && <Reports teams={teams} settings={settings} />}
-          {tab === "settings" && <SettingsView settings={settings} onSave={setSettings} onClearAll={async () => { await clearAllTeams(); setTeams([]); }} teamsCount={teams.length} />}
+          {tab === "settings" && <SettingsView settings={settings} onSave={setSettings} onClearAll={async () => { await clearAllTeams(); setTeams([]); }} teamsCount={teams.length} teams={teams} />}
         </main>
       </div>
 
