@@ -257,7 +257,7 @@ export default function SettingsView({ settings, onSave, onClearAll, teamsCount 
             />
           </div>
           <div className="text-xs text-slate-500">
-            Available placeholders: {"{{teamName}}, {{leaderName}}, {{eventName}}, {{tableNumber}}, {{ctfdUsername}}, {{ctfdPassword}}, {{ctfdUrl}}"}
+            Available placeholders: {"{{teamName}}, {{leaderName}}, {{memberName}}, {{eventName}}, {{tableNumber}}, {{ctfdUsername}}, {{ctfdPassword}}, {{ctfdUrl}}"}
           </div>
         </div>
       </div>

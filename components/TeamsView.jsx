@@ -130,11 +130,15 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
     (value || "")
       .toString()
       .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
+      .replace(/\s+/g, " ")
+      .replace(/[^a-zA-Z0-9 ._-]+/g, "")
+      .replace(/^[-_. ]+|[-_. ]+$/g, "");
 
   const generateCTFdUsername = (name, sap, role = "") => {
+    const cleanedName = normalizeForUsername(name);
+    if (cleanedName) {
+      return cleanedName;
+    }
     const baseName = normalizeForUsername(name).slice(0, 15) || `user${role}`;
     const suffix = (sap || "").replace(/\D/g, "").slice(-3) || Math.random().toString(36).slice(2, 5);
     return `${baseName}_${suffix}`.replace(/__+/g, "_").slice(0, 32);
@@ -449,6 +453,11 @@ function TeamRow({ team, settings, onUpdate, onDelete, onEmailOpen }) {
               {team.tableNumber && (
                 <span className="badge badge-table">
                   <TableProperties size={10} /> T-{team.tableNumber}
+                </span>
+              )}
+              {isRegisteredOnCTFD && (
+                <span className="badge bg-cyan-900/30 border-cyan-500/40 text-cyan-300">
+                  <CheckCircle2 size={10} /> CTFd Registered
                 </span>
               )}
               {team.feeVerified && <span className="badge badge-verified"><ShieldCheck size={10} /> Verified</span>}
