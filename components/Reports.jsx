@@ -1,4 +1,4 @@
-// components/Reports.jsx
+﻿// components/Reports.jsx
 import { FileDown, Printer, BarChart3 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -9,13 +9,31 @@ function generatePDFHTML(type, teams, settings) {
   const td = `padding:7px 10px;font-size:11px;border:1px solid #e2e8f0;vertical-align:top`;
   const tdAlt = `padding:7px 10px;font-size:11px;border:1px solid #e2e8f0;background:#f8fafc;vertical-align:top`;
 
-  const row = (cells, i) => `<tr>${cells.map(c => `<td style="${i % 2 === 0 ? td : tdAlt}">${c ?? "—"}</td>`).join("")}</tr>`;
+  const memberRoles = [
+    { key: "leader", label: "Leader" },
+    { key: "p2", label: "Player 2" },
+    { key: "p3", label: "Player 3" },
+  ];
+
+  const row = (cells, i) => `<tr>${cells.map(c => `<td style="${i % 2 === 0 ? td : tdAlt}">${c ?? "â€”"}</td>`).join("")}</tr>`;
   const absentList = (t, day) => {
     const roles = ["leader", "p2", "p3"].filter(role => t[role]?.name);
     const absent = roles.filter(role => !(t.memberAttendance?.[role]?.[day])).map(role => t[role].name);
     return absent.length ? absent.join(", ") : "None";
   };
 
+  const getMembers = (team) => memberRoles
+    .filter(({ key }) => team[key]?.name)
+    .map(({ key, label }) => ({
+      key,
+      label,
+      name: team[key].name,
+      sap: team[key].sap || "â€”",
+      day1: !!team.memberAttendance?.[key]?.day1,
+      day2: !!team.memberAttendance?.[key]?.day2,
+    }));
+  const formatStatus = (isPresent) => `<span style="color:${isPresent ? "#22c55e" : "#f87171"};font-weight:600">${isPresent ? "Present" : "Absent"}</span>`;
+  const totalPlayers = teams.reduce((count, team) => count + getMembers(team).length, 0);
   if (type === "attendance") {
     return `<html><head><meta charset="utf-8"><style>
       body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px;color:#0f172a;background:#0b1120}
@@ -24,37 +42,42 @@ function generatePDFHTML(type, teams, settings) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} — Attendance Report</h1>
-    <p class="meta">Generated: ${now} | Total Teams: ${teams.length}</p>
+    <h1>${settings.eventName} - Attendance Report</h1>
+    <p class="meta">Generated: ${now} | Total Teams: ${teams.length} | Total Players: ${totalPlayers}</p>
     <table>
       <thead><tr>
         <th style="${th}">#</th>
         <th style="${th}">Team Name</th>
-        <th style="${th}">Leader</th>
-        <th style="${th}">SAP ID</th>
         <th style="${th}">Campus</th>
         <th style="${th}">Table</th>
-        <th style="${th}">${settings.day1Label || "Day 1"}</th>
+        <th style="${th}">Members</th>
+        <th style="${th}">${settings.day1Label || "Day 1"} Status</th>
         <th style="${th}">In Time D1</th>
-        ${showDay2 ? `<th style="${th}">${settings.day2Label || "Day 2"}</th><th style="${th}">In Time D2</th>` : ""}
+        ${showDay2 ? `<th style="${th}">${settings.day2Label || "Day 2"} Status</th><th style="${th}">In Time D2</th>` : ""}
         <th style="${th}">Fee</th>
       </tr></thead>
       <tbody>
-        ${teams.map((t, i) => row([
-          i + 1,
-          t.teamName,
-          t.leader.name,
-          t.leader.sap,
-          t.campus?.split(" ").slice(0, 2).join(" "),
-          t.tableNumber ? `T-${t.tableNumber}` : "—",
-          `<span style="color:${t.attendance?.day1 ? "#22c55e" : "#f87171"};font-weight:600">${t.attendance?.day1 ? "Present" : "Absent"}</span>`,
-          t.checkInTime?.day1 || "—",
-          ...(showDay2 ? [
-            `<span style="color:${t.attendance?.day2 ? "#22c55e" : "#f87171"};font-weight:600">${t.attendance?.day2 ? "Present" : "Absent"}</span>`,
-            t.checkInTime?.day2 || "—"
-          ] : []),
-          `<span style="color:${t.feeVerified ? "#22c55e" : "#f59e0b"};font-weight:600">${t.feeVerified ? "Verified" : "Pending"}</span>`,
-        ], i)).join("")}
+        ${teams.map((t, i) => {
+          const members = getMembers(t);
+          const memberList = members.map(m => `${m.label}: ${m.name} <span style="color:#64748b">(SAP: ${m.sap})</span>`).join("<br/>");
+          const day1Status = members.map(m => `${m.label}: ${formatStatus(m.day1)}`).join("<br/>");
+          const day2Status = members.map(m => `${m.label}: ${formatStatus(m.day2)}`).join("<br/>");
+
+          return row([
+            i + 1,
+            t.teamName,
+            t.campus?.split(" ").slice(0, 2).join(" "),
+            t.tableNumber ? `T-${t.tableNumber}` : "-",
+            memberList || "-",
+            day1Status || formatStatus(false),
+            t.checkInTime?.day1 || "-",
+            ...(showDay2 ? [
+              day2Status || formatStatus(false),
+              t.checkInTime?.day2 || "-"
+            ] : []),
+            `<span style="color:${t.feeVerified ? "#22c55e" : "#f59e0b"};font-weight:600">${t.feeVerified ? "Verified" : "Pending"}</span>`,
+          ], i);
+        }).join("")}
       </tbody>
     </table>
     </body></html>`;
@@ -68,7 +91,7 @@ function generatePDFHTML(type, teams, settings) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} — Food Distribution</h1>
+    <h1>${settings.eventName} â€” Food Distribution</h1>
     <p class="meta">Generated: ${now}</p>
     <table>
       <thead><tr>
@@ -85,12 +108,12 @@ function generatePDFHTML(type, teams, settings) {
           i + 1,
           t.teamName,
           t.leader.name,
-          t.tableNumber ? `T-${t.tableNumber}` : "—",
-          t.attendance?.day1 ? "✓" : "✗",
-          `<span style="color:${t.food?.day1 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day1 ? "✓ Given" : "✗ Not Given"}</span>`,
+          t.tableNumber ? `T-${t.tableNumber}` : "â€”",
+          t.attendance?.day1 ? "âœ“" : "âœ—",
+          `<span style="color:${t.food?.day1 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day1 ? "âœ“ Given" : "âœ— Not Given"}</span>`,
           ...(showDay2 ? [
-            t.attendance?.day2 ? "✓" : "✗",
-            `<span style="color:${t.food?.day2 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day2 ? "✓ Given" : "✗ Not Given"}</span>`
+            t.attendance?.day2 ? "âœ“" : "âœ—",
+            `<span style="color:${t.food?.day2 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day2 ? "âœ“ Given" : "âœ— Not Given"}</span>`
           ] : []),
         ], i)).join("")}
       </tbody>
@@ -108,7 +131,7 @@ function generatePDFHTML(type, teams, settings) {
         t.p3?.name ? { role: "Player 3", ...t.p3 } : null,
       ].filter(Boolean);
       players.forEach(p => {
-        rows.push(row([idx++, t.teamName, p.role, p.name, p.sap, p.email || "—", t.campus?.split(" ").slice(0, 2).join(" "), t.semester, t.tableNumber ? `T-${t.tableNumber}` : "—"], idx));
+        rows.push(row([idx++, t.teamName, p.role, p.name, p.sap, p.email || "â€”", t.campus?.split(" ").slice(0, 2).join(" "), t.semester, t.tableNumber ? `T-${t.tableNumber}` : "â€”"], idx));
       });
     });
     return `<html><head><meta charset="utf-8"><style>
@@ -118,8 +141,8 @@ function generatePDFHTML(type, teams, settings) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} — Full Player List</h1>
-    <p class="meta">Generated: ${now} | Total Players: ~${teams.length * 3}</p>
+    <h1>${settings.eventName} â€” Full Player List</h1>
+    <p class="meta">Generated: ${now} | Total Players: ${totalPlayers}</p>
     <table>
       <thead><tr>
         <th style="${th}">#</th>
@@ -145,7 +168,7 @@ function generatePDFHTML(type, teams, settings) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} — Complete Team Registry</h1>
+    <h1>${settings.eventName} â€” Complete Team Registry</h1>
     <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
     <table>
       <thead><tr>
@@ -170,14 +193,14 @@ function generatePDFHTML(type, teams, settings) {
       <tbody>
         ${teams.map((t, i) => row([
           i + 1, t.teamName, t.campus?.split(" ").slice(0, 2).join(" "), t.semester,
-          t.leader.name, t.leader.sap, t.leader.email, t.leader.phone || "—",
-          t.p2?.name || "—", t.p2?.sap || "—",
-          t.p3?.name || "—", t.p3?.sap || "—",
-          t.tableNumber ? `T-${t.tableNumber}` : "—",
-          t.feeVerified ? "✓" : "⏳",
-          t.attendance?.day1 ? "✓" : "✗",
-          t.attendance?.day2 ? "✓" : "✗",
-          t.notes || "—",
+          t.leader.name, t.leader.sap, t.leader.email, t.leader.phone || "â€”",
+          t.p2?.name || "â€”", t.p2?.sap || "â€”",
+          t.p3?.name || "â€”", t.p3?.sap || "â€”",
+          t.tableNumber ? `T-${t.tableNumber}` : "â€”",
+          t.feeVerified ? "âœ“" : "â³",
+          t.attendance?.day1 ? "âœ“" : "âœ—",
+          t.attendance?.day2 ? "âœ“" : "âœ—",
+          t.notes || "â€”",
         ], i)).join("")}
       </tbody>
     </table>
@@ -193,7 +216,7 @@ function generatePDFHTML(type, teams, settings) {
       th,td{border:1px solid #1e293b}
       .strong{font-weight:700;color:#0f172a}
     </style></head><body>
-    <h1>${settings.eventName} — CTFd Credentials</h1>
+    <h1>${settings.eventName} â€” CTFd Credentials</h1>
     <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
     <table>
       <thead><tr>
@@ -213,10 +236,10 @@ function generatePDFHTML(type, teams, settings) {
           if (t.ctfdAccount?.p3) members.push({ ...t.ctfdAccount.p3, role: "Player 3", displayName: t.ctfdAccount.p3.name || t.p3?.name });
           return members.map((m, idx) => row([
             idx === 0 ? t.teamName : "",
-            m.displayName || m.name || "—",
+            m.displayName || m.name || "â€”",
             m.role,
-            m.sap || "—",
-            m.email || "—",
+            m.sap || "â€”",
+            m.email || "â€”",
             m.username,
             m.password,
           ], idx));
@@ -234,7 +257,7 @@ function generatePDFHTML(type, teams, settings) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} — Absent Players Report</h1>
+    <h1>${settings.eventName} â€” Absent Players Report</h1>
     <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
     <table>
       <thead><tr>
@@ -248,7 +271,7 @@ function generatePDFHTML(type, teams, settings) {
         ${teams.map((t, i) => row([
           i + 1,
           t.teamName,
-          t.tableNumber ? `T-${t.tableNumber}` : "—",
+          t.tableNumber ? `T-${t.tableNumber}` : "â€”",
           absentList(t, "day1"),
           ...(showDay2 ? [absentList(t, "day2")] : []),
         ], i)).join("")}
@@ -281,18 +304,18 @@ function generatePDFHTML(type, teams, settings) {
         <div class="header">
           <div class="event">${settings.eventName || "CTF"}</div>
           <h1 class="team-name">${t.teamName}</h1>
-          <div class="table-badge">TABLE ${t.tableNumber || "—"}</div>
+          <div class="table-badge">TABLE ${t.tableNumber || "â€”"}</div>
         </div>
         <div class="content">
           <div class="section">
             <div class="section-label">Leader</div>
-            <div class="section-value">${t.leader.name || "—"}</div>
-            <div style="font-size:10px;color:#666;margin-top:4px">SAP: ${t.leader.sap || "—"}</div>
+            <div class="section-value">${t.leader.name || "â€”"}</div>
+            <div style="font-size:10px;color:#666;margin-top:4px">SAP: ${t.leader.sap || "â€”"}</div>
           </div>
           <div class="section">
             <div class="section-label">Campus</div>
-            <div class="section-value">${t.campus?.split(" ").slice(0,2).join(" ") || "—"}</div>
-            <div style="font-size:10px;color:#666;margin-top:4px">Sem: ${t.semester || "—"}</div>
+            <div class="section-value">${t.campus?.split(" ").slice(0,2).join(" ") || "â€”"}</div>
+            <div style="font-size:10px;color:#666;margin-top:4px">Sem: ${t.semester || "â€”"}</div>
           </div>
         </div>
         <div class="members">
@@ -352,11 +375,11 @@ function generatePDFHTML(type, teams, settings) {
           <div class="row">
             <div>
               <div class="label">Leader</div>
-              <div class="value">${t.leader.name || "—"}</div>
+              <div class="value">${t.leader.name || "â€”"}</div>
             </div>
             <div>
               <div class="label">Leader SAP</div>
-              <div class="value">${t.leader.sap || "—"}</div>
+              <div class="value">${t.leader.sap || "â€”"}</div>
             </div>
           </div>
           <div class="row">
@@ -373,7 +396,7 @@ function generatePDFHTML(type, teams, settings) {
               return `<div class="member">
                 <div class="member-title">${role === "leader" ? "Leader" : role === "p2" ? "Player 2" : "Player 3"}</div>
                 <div class="member-name">${player.name}</div>
-                <div class="member-note">SAP: ${player.sap || "—"}</div>
+                <div class="member-note">SAP: ${player.sap || "â€”"}</div>
                 <div class="member-note">D1: <span class="${status1}">${status1}</span></div>
                 ${showDay2 ? `<div class="member-note">D2: <span class="${status2}">${status2}</span></div>` : ""}
               </div>`;
@@ -404,22 +427,25 @@ function openPrint(html) {
 }
 
 export default function Reports({ teams, settings }) {
+  const totalPlayers = teams.reduce((count, team) => {
+    return count + ["leader", "p2", "p3"].filter(role => team[role]?.name).length;
+  }, 0);
   const reports = [
-    { key: "attendance", title: "Attendance Report", desc: "All teams with Day 1 & Day 2 check-in times and fee status", icon: "📋" },
-    { key: "food", title: "Food Distribution", desc: "Which teams received food per day", icon: "🍽️" },
-    { key: "absent_members", title: "Absent Members", desc: "Day-wise absent players per team", icon: "🚫" },
-    { key: "table_card", title: "Table Cards", desc: "Simple print-ready cards for placing on registration tables", icon: "🗳️" },
-    { key: "team_cards", title: "Attendance Cards", desc: "Modern cyber cards with attendance & member status", icon: "🃏" },
-    { key: "credentials", title: "CTFd Credentials", desc: "Username/password list for registered CTFd users", icon: "🔑" },
-    { key: "players", title: "Full Player List", desc: "Individual player rows with SAP IDs and emails", icon: "👤" },
-    { key: "teams_full", title: "Complete Registry", desc: "All fields including notes, table, fee, attendance", icon: "🗂️" },
+    { key: "attendance", title: "Attendance Report", desc: "All teams with Day 1 & Day 2 check-in times and fee status", icon: "AR" },
+    { key: "food", title: "Food Distribution", desc: "Which teams received food per day", icon: "FD" },
+    { key: "absent_members", title: "Absent Members", desc: "Day-wise absent players per team", icon: "AM" },
+    { key: "table_card", title: "Table Cards", desc: "Simple print-ready cards for placing on registration tables", icon: "TC" },
+    { key: "team_cards", title: "Attendance Cards", desc: "Modern cyber cards with attendance & member status", icon: "AC" },
+    { key: "credentials", title: "CTFd Credentials", desc: "Username/password list for registered CTFd users", icon: "ID" },
+    { key: "players", title: "Full Player List", desc: "Individual player rows with SAP IDs and emails", icon: "PL" },
+    { key: "teams_full", title: "Complete Registry", desc: "All fields including notes, table, fee, attendance", icon: "CR" },
   ];
 
   const handlePrint = (key) => {
     if (!teams.length) { toast.error("No teams to export"); return; }
     const html = generatePDFHTML(key, teams, settings);
     openPrint(html);
-    toast.success("Print dialog opened — Save as PDF from print menu");
+    toast.success("Print dialog opened - Save as PDF from print menu");
   };
 
   const handleExportCSV = () => {
@@ -477,7 +503,7 @@ export default function Reports({ teams, settings }) {
             { label: "Fee Verified", value: feeVerified, color: "text-emerald-400" },
             { label: "Day 1 Present", value: d1Present, color: "text-blue-400" },
             { label: "Day 2 Present", value: d2Present, color: "text-violet-400" },
-            { label: "Total Players", value: teams.length * 3, color: "text-amber-400" },
+            { label: "Total Players", value: totalPlayers, color: "text-amber-400" },
           ].map(s => (
             <div key={s.label} className="bg-slate-900/60 rounded-lg p-3">
               <div className={`text-2xl font-display font-bold ${s.color}`}>{s.value}</div>
@@ -514,7 +540,7 @@ export default function Reports({ teams, settings }) {
         <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside">
           <li>Click "Print / PDF" on any report above</li>
           <li>In the print dialog, change <strong className="text-slate-300">Destination</strong> to "Save as PDF"</li>
-          <li>Click Save — you'll get a properly formatted PDF with table rows and columns</li>
+          <li>Click Save - you'll get a properly formatted PDF with table rows and columns</li>
         </ol>
       </div>
     </div>
