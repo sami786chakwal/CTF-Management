@@ -65,7 +65,7 @@ export default function LoginPage({ onLogin }) {
         </div>
 
         <p className="text-center text-xs text-slate-500 mt-6">
-          Default: admin / ctf2026
+          &copy; 2026 CTF Management System
         </p>
       </div>
     </div>
