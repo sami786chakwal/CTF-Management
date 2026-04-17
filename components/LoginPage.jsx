@@ -1,15 +1,18 @@
-// components/LoginPage.jsx - SIMPLIFIED FOR DEBUG
 import { useState } from "react";
 import { Lock, Terminal } from "lucide-react";
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, settings }) {
   const [form, setForm] = useState({ username: "", password: "" });
   const [err, setErr] = useState("");
   const [shake, setShake] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.username === "admin" && form.password === "ctf2026") {
+    const adminUsername = settings?.adminUsername || "admin";
+    const adminPassword = settings?.adminPassword || "ctf2026";
+
+    if (form.username === adminUsername && form.password === adminPassword) {
+      setErr("");
       onLogin();
     } else {
       setErr("Invalid credentials");
@@ -36,7 +39,7 @@ export default function LoginPage({ onLogin }) {
               <input
                 className="w-full bg-[#0a0d14] border border-slate-700 rounded-lg px-4 py-3 text-white"
                 type="text"
-                placeholder="admin"
+                placeholder={settings?.adminUsername || "admin"}
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
               />

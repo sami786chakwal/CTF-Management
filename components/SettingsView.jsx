@@ -1,5 +1,5 @@
 // components/SettingsView.jsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Save, Settings, Shield, Trash2, Eye, EyeOff, Calendar, Plus, X, Mail, Link2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveSettings, parseCSV, rowToTeam, getUniqueKey } from "../lib/store";
@@ -9,37 +9,9 @@ export default function SettingsView({ settings, onSave, onClearAll, teamsCount,
   const [showAdminPass, setShowAdminPass] = useState(false);
   const [showSmtpPass, setShowSmtpPass] = useState(false);
 
-  // Auto-sync effect
   useEffect(() => {
-    if (!form.googleFormEnabled || !form.googleFormURL || !form.googleFormSyncInterval) {
-      return;
-    }
-
-    const interval = setInterval(async () => {
-      try {
-        console.log("Auto-syncing from Google Form...");
-        const response = await fetch("/api/google-sync");
-        const data = await response.json();
-
-        if (response.ok && data.synced) {
-          // Update last sync time
-          const updatedForm = { ...form, googleFormLastSync: new Date().toISOString() };
-          setForm(updatedForm);
-          await saveSettings(updatedForm);
-
-          toast.success(`Auto-synced ${data.newTeams} new teams from Google Form`, { duration: 3000 });
-          
-          // Refresh the page to show new teams
-          setTimeout(() => window.location.reload(), 1000);
-        }
-      } catch (error) {
-        console.error("Auto-sync failed:", error);
-        // Don't show error toast for auto-sync failures to avoid spam
-      }
-    }, (form.googleFormSyncInterval || 10) * 60 * 1000); // Convert minutes to milliseconds
-
-    return () => clearInterval(interval);
-  }, [form.googleFormEnabled, form.googleFormURL, form.googleFormSyncInterval]);
+    setForm({ ...settings });
+  }, [settings]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 

@@ -1,5 +1,5 @@
 // pages/api/google-sync.js
-import { loadSettings, importTeamsAPI, parseCSV, rowToTeam, getUniqueKey, loadTeams } from "../../lib/store";
+import { loadSettings, importTeamsAPI, parseCSV, rowToTeam, getUniqueKey, loadTeams, saveSettings } from "../../lib/store";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -48,11 +48,15 @@ export default async function handler(req, res) {
       }))
     );
 
+    const syncedAt = new Date().toISOString();
+
     if (newRows.length === 0) {
+      await saveSettings({ ...settings, googleFormLastSync: syncedAt });
       return res.status(200).json({
         success: true,
         message: "No new teams to import",
         synced: false,
+        lastSync: syncedAt,
         totalInForm: rows.length,
         newTeams: 0
       });
@@ -63,11 +67,13 @@ export default async function handler(req, res) {
 
     // Import teams
     const importedTeams = await importTeamsAPI(toAdd);
+    await saveSettings({ ...settings, googleFormLastSync: syncedAt });
 
     res.status(200).json({
       success: true,
       message: `Successfully synced ${importedTeams.length} new teams from Google Form`,
       synced: true,
+      lastSync: syncedAt,
       totalInForm: rows.length,
       newTeams: importedTeams.length,
       teams: importedTeams

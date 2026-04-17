@@ -16,7 +16,6 @@ import SettingsView from "../components/SettingsView";
 import ImportView from "../components/ImportView";
 import EmailModal from "../components/EmailModal";
 import FoodView from "../components/FoodView";
-import FoodEditView from "../components/FoodEditView";
 
 import { loadTeams, loadSettings, updateTeamAPI, deleteTeamAPI, importTeamsAPI, clearAllTeams } from "../lib/store";
 import { database, ref, onValue } from '../lib/firebase';
@@ -26,7 +25,6 @@ const NAV = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "teams", label: "Teams", icon: Users },
   { key: "food", label: "Food", icon: UtensilsCrossed },
-  { key: "food-edit", label: "Food Edit", icon: UtensilsCrossed },
   { key: "import", label: "Import CSV", icon: Upload },
   { key: "tablemap", label: "Table Map", icon: TableProperties },
   { key: "reports", label: "Reports", icon: BarChart3 },
@@ -82,6 +80,35 @@ export default function Home() {
       unsubscribeSettings();
     };
   }, []);
+
+  useEffect(() => {
+    if (!loggedIn || !settings.googleFormEnabled || !settings.googleFormURL) {
+      return;
+    }
+
+    const syncIntervalMs = Math.max(Number(settings.googleFormSyncInterval) || 10, 5) * 60 * 1000;
+
+    const runAutoSync = async () => {
+      try {
+        console.log("Running Google Form auto-sync...");
+        const response = await fetch("/api/google-sync");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Auto-sync failed");
+        }
+
+        if (data.synced) {
+          toast.success(`Auto-synced ${data.newTeams} new team(s) from Google Form`, { duration: 3000 });
+        }
+      } catch (error) {
+        console.error("Google Form auto-sync failed:", error);
+      }
+    };
+
+    const interval = setInterval(runAutoSync, syncIntervalMs);
+    return () => clearInterval(interval);
+  }, [loggedIn, settings.googleFormEnabled, settings.googleFormURL, settings.googleFormSyncInterval]);
 
   const updateTeam = async (id, patch) => {
     try {
@@ -163,7 +190,6 @@ export default function Home() {
           {tab === "dashboard" && <Dashboard teams={teams} settings={settings} />}
           {tab === "teams" && <TeamsView teams={teams} settings={settings} onUpdate={updateTeam} onDelete={deleteTeam} onEmailOpen={(team, initialTab = "confirmation") => setEmailModal({ team, initialTab })} />}
           {tab === "food" && <FoodView teams={teams} settings={settings} onUpdate={updateTeam} />}
-          {tab === "food-edit" && <FoodEditView teams={teams} settings={settings} onUpdate={updateTeam} />}
           {tab === "import" && <ImportView teams={teams} onImport={importTeams} />}
           {tab === "tablemap" && <TableMap teams={teams} settings={settings} onUpdate={updateTeam} />}
           {tab === "reports" && <Reports teams={teams} settings={settings} />}
