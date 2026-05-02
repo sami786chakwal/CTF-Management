@@ -284,77 +284,239 @@ function generatePDFHTML(type, teams, settings, options = {}) {
   }
 
   if (type === "table_card") {
-    const isLandscape = orientation === 'landscape';
-    
-    return `<html><head><meta charset="utf-8"><style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      @page{${isLandscape ? 'size:A4 landscape;margin:0.5in;' : 'size:A4 portrait;margin:0.5in;'}page-break-after:always}
-      @media print{body{margin:0;padding:0}}
-      html,body{width:100%;height:100%;background:#fff}
-      body{font-family:'Segoe UI','Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000;margin:0;padding:0}
-      .page{display:flex;align-items:center;justify-content:center;width:100%;height:calc(100vh - 1in);page-break-after:always}
-      .card{display:flex;flex-direction:column;width:100%;max-width:${isLandscape ? '8.5in' : '5.5in'};padding:28px;border:2.5px solid #059669;border-radius:12px;background:linear-gradient(135deg,#ffffff 0%,#f0fdf4 100%);box-shadow:0 4px 12px rgba(5,150,105,0.15);position:relative;page-break-inside:avoid;break-inside:avoid}
-      .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);border-radius:9px 9px 0 0}
-      .header{text-align:center;margin-bottom:24px;padding-bottom:18px;border-bottom:2px solid rgba(5,150,105,0.2)}
-      .event{font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:#059669;font-weight:700;margin-bottom:8px}
-      .team-name{font-size:32px;line-height:1.15;font-weight:900;color:#0f172a;margin:6px 0 12px;letter-spacing:-0.5px}
-      .table-badge{display:inline-block;font-size:14px;padding:8px 18px;border-radius:20px;background:#059669;color:#fff;letter-spacing:0.04em;font-weight:700;box-shadow:0 2px 6px rgba(5,150,105,0.3)}
-      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-      .info-box{padding:14px;background:rgba(5,150,105,0.05);border-left:4px solid #059669;border-radius:4px}
-      .info-label{font-size:9px;text-transform:uppercase;color:#059669;letter-spacing:0.1em;font-weight:700;margin-bottom:4px}
-      .info-value{font-size:14px;color:#0f172a;font-weight:700}
-      .info-detail{font-size:10px;color:#64748b;margin-top:2px}
-      .members{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
-      .member-card{text-align:center;padding:16px 12px;background:linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%);border:1.5px solid #a7f3d0;border-radius:8px;display:flex;flex-direction:column;justify-content:center}
-      .member-role{font-size:8px;text-transform:uppercase;color:#059669;letter-spacing:0.08em;font-weight:800;margin-bottom:6px}
-      .member-name{font-size:13px;font-weight:800;color:#0f172a;line-height:1.2;margin-bottom:4px}
-      .member-sap{font-size:10px;color:#64748b;font-weight:600}
-      .footer{font-size:8px;color:#94a3b8;text-align:center;margin-top:auto;padding-top:14px;border-top:1px solid rgba(5,150,105,0.15)}
-      @media print{
-        body{margin:0;padding:0}
-        .page{margin:0;padding:0}
-        .card{margin:0}
-      }
-    </style></head><body>
-      ${teams.map((t, index) => {
-        const members = [
-          t.leader?.name ? { role: 'LEADER', name: t.leader.name, sap: t.leader.sap || '–' } : null,
-          t.p2?.name ? { role: 'PLAYER 2', name: t.p2.name, sap: t.p2.sap || '–' } : null,
-          t.p3?.name ? { role: 'PLAYER 3', name: t.p3.name, sap: t.p3.sap || '–' } : null,
-        ].filter(Boolean);
+  const isLandscape = orientation === 'landscape';
 
-        return `<div class="page">
-          <div class="card">
-            <div class="header">
-              <div class="event">${settings.eventName || "CTF 2026"}</div>
+  return `<html><head><meta charset="utf-8"><style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    @page{
+      ${isLandscape ? 'size:A4 landscape;' : 'size:A4 portrait;'}
+      margin:0;
+    }
+    html,body{
+      width:100%;
+      height:100%;
+      background:#fff;
+    }
+    body{
+      font-family:'Segoe UI','Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      background:#fff;
+      color:#000;
+    }
+    .page{
+      width:${isLandscape ? '297mm' : '210mm'};
+      height:${isLandscape ? '210mm' : '297mm'};
+      page-break-after:always;
+      break-after:page;
+      display:flex;
+      flex-direction:column;
+      padding:14mm;
+      background:#fff;
+      position:relative;
+      overflow:hidden;
+    }
+    .page:last-child{page-break-after:avoid;break-after:avoid}
+    /* Green top accent bar */
+    .page::before{
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:8mm;
+      background:linear-gradient(90deg,#059669 0%,#10b981 55%,#34d399 100%);
+    }
+    /* Subtle background watermark */
+    .page::after{
+      content:'CTF';
+      position:absolute;
+      bottom:10mm;right:10mm;
+      font-size:80mm;
+      font-weight:900;
+      color:rgba(5,150,105,0.04);
+      line-height:1;
+      pointer-events:none;
+      user-select:none;
+    }
+    .card-inner{
+      display:flex;
+      flex-direction:column;
+      height:100%;
+      padding-top:6mm;
+    }
+    /* Header */
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      margin-bottom:8mm;
+      padding-bottom:6mm;
+      border-bottom:0.5mm solid #d1fae5;
+    }
+    .event-label{
+      font-size:9pt;
+      text-transform:uppercase;
+      letter-spacing:0.18em;
+      color:#059669;
+      font-weight:700;
+      margin-bottom:3mm;
+    }
+    .team-name{
+      font-size:${isLandscape ? '32pt' : '28pt'};
+      font-weight:900;
+      color:#0f172a;
+      line-height:1.05;
+      letter-spacing:-0.5px;
+    }
+    .table-badge{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      min-width:${isLandscape ? '40mm' : '36mm'};
+      padding:4mm 5mm;
+      background:#059669;
+      border-radius:4mm;
+      color:#fff;
+      text-align:center;
+      flex-shrink:0;
+      box-shadow:0 3px 12px rgba(5,150,105,0.35);
+    }
+    .table-label{font-size:8pt;text-transform:uppercase;letter-spacing:0.2em;opacity:0.85;font-weight:600;margin-bottom:1mm}
+    .table-number{font-size:${isLandscape ? '30pt' : '26pt'};font-weight:900;line-height:1}
+    /* Info row */
+    .info-row{
+      display:grid;
+      grid-template-columns:1fr 1fr ${isLandscape ? '1fr 1fr' : ''};
+      gap:5mm;
+      margin-bottom:8mm;
+    }
+    .info-box{
+      padding:4mm 5mm;
+      background:#f0fdf4;
+      border-left:2mm solid #059669;
+      border-radius:0 2mm 2mm 0;
+    }
+    .info-label{font-size:7pt;text-transform:uppercase;color:#059669;letter-spacing:0.12em;font-weight:700;margin-bottom:1.5mm}
+    .info-value{font-size:${isLandscape ? '12pt' : '11pt'};color:#0f172a;font-weight:700;line-height:1.2}
+    .info-detail{font-size:8pt;color:#64748b;margin-top:1mm}
+    /* Members */
+    .members-title{
+      font-size:8pt;text-transform:uppercase;color:#059669;
+      letter-spacing:0.15em;font-weight:700;margin-bottom:4mm;
+    }
+    .members{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:5mm;
+      flex:1;
+    }
+    .member-card{
+      display:flex;
+      flex-direction:column;
+      padding:5mm;
+      background:linear-gradient(145deg,#f0fdf4,#ecfdf5);
+      border:0.5mm solid #a7f3d0;
+      border-radius:3mm;
+      position:relative;
+      overflow:hidden;
+    }
+    .member-card::before{
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:1.5mm;
+      background:#059669;
+    }
+    .member-role{
+      font-size:7.5pt;text-transform:uppercase;color:#059669;
+      letter-spacing:0.12em;font-weight:800;margin-bottom:2.5mm;
+    }
+    .member-name{
+      font-size:${isLandscape ? '13pt' : '12pt'};
+      font-weight:800;color:#0f172a;line-height:1.2;margin-bottom:2mm;
+      flex:1;
+    }
+    .member-sap{font-size:9pt;color:#475569;font-weight:600}
+    .member-email{font-size:7.5pt;color:#64748b;margin-top:1.5mm;word-break:break-all}
+    /* Footer */
+    .footer{
+      margin-top:auto;
+      padding-top:4mm;
+      border-top:0.3mm solid #d1fae5;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .footer-text{font-size:7pt;color:#94a3b8}
+    .footer-event{font-size:7pt;color:#059669;font-weight:700;text-transform:uppercase;letter-spacing:0.1em}
+    @media print{
+      html,body{margin:0;padding:0}
+      .page{margin:0;padding:14mm;padding-top:20mm}
+    }
+  </style></head><body>
+    ${teams.map((t) => {
+      const members = [
+        t.leader?.name ? { role: 'LEADER', name: t.leader.name, sap: t.leader.sap || '–', email: t.leader.email || '' } : null,
+        t.p2?.name ? { role: 'PLAYER 2', name: t.p2.name, sap: t.p2.sap || '–', email: t.p2.email || '' } : null,
+        t.p3?.name ? { role: 'PLAYER 3', name: t.p3.name, sap: t.p3.sap || '–', email: t.p3.email || '' } : null,
+      ].filter(Boolean);
+
+      const campusShort = t.campus?.split(" ").slice(0, 2).join(" ") || "–";
+
+      return `<div class="page">
+        <div class="card-inner">
+          <div class="header">
+            <div>
+              <div class="event-label">${settings.eventName || "CTF 2026"}</div>
               <div class="team-name">${t.teamName}</div>
-              <div class="table-badge">TABLE ${t.tableNumber || "–"}</div>
             </div>
-            <div class="info-grid">
-              <div class="info-box">
-                <div class="info-label">Team Lead</div>
-                <div class="info-value">${t.leader.name || "–"}</div>
-                <div class="info-detail">SAP: ${t.leader.sap || "–"}</div>
-              </div>
-              <div class="info-box">
-                <div class="info-label">Campus/Sem</div>
-                <div class="info-value">${t.campus?.split(" ").slice(0,2).join(" ") || "–"}</div>
-                <div class="info-detail">Sem: ${t.semester || "–"}</div>
-              </div>
+            <div class="table-badge">
+              <div class="table-label">Table</div>
+              <div class="table-number">${t.tableNumber || "–"}</div>
             </div>
-            <div class="members">
-              ${members.map(m => `<div class="member-card">
-                <div class="member-role">${m.role}</div>
-                <div class="member-name">${m.name}</div>
-                <div class="member-sap">${m.sap}</div>
-              </div>`).join("")}
-            </div>
-            <div class="footer">Generated: ${now} • Cyber Infinity CTF 2026</div>
           </div>
-        </div>`;
-      }).join("")}
-    </body></html>`;
-  }
+
+          <div class="info-row">
+            <div class="info-box">
+              <div class="info-label">Team Leader</div>
+              <div class="info-value">${t.leader?.name || "–"}</div>
+              <div class="info-detail">SAP: ${t.leader?.sap || "–"}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Campus</div>
+              <div class="info-value">${campusShort}</div>
+              <div class="info-detail">Semester: ${t.semester || "–"}</div>
+            </div>
+            ${isLandscape ? `
+            <div class="info-box">
+              <div class="info-label">Fee Status</div>
+              <div class="info-value" style="color:${t.feeVerified ? '#059669' : '#d97706'}">${t.feeVerified ? 'Verified ✓' : 'Pending ⊘'}</div>
+              <div class="info-detail">Registration</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Contact</div>
+              <div class="info-value">${t.leader?.phone || "–"}</div>
+              <div class="info-detail">${t.leader?.email?.split('@')[0] || "–"}@...</div>
+            </div>` : ''}
+          </div>
+
+          <div class="members-title">Team Members</div>
+          <div class="members">
+            ${members.map(m => `<div class="member-card">
+              <div class="member-role">${m.role}</div>
+              <div class="member-name">${m.name}</div>
+              <div class="member-sap">SAP: ${m.sap}</div>
+              ${m.email ? `<div class="member-email">${m.email}</div>` : ''}
+            </div>`).join("")}
+          </div>
+
+          <div class="footer">
+            <span class="footer-text">Generated: ${now}</span>
+            <span class="footer-event">${settings.eventName || "CTF 2026"}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join("")}
+  </body></html>`;
+}
 
   if (type === "team_cards") {
     return `<html><head><meta charset="utf-8"><style>
