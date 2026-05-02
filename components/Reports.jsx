@@ -290,25 +290,25 @@ function generatePDFHTML(type, teams, settings, options = {}) {
     return `<html><head><meta charset="utf-8"><style>
       @page{margin:0.5in;size:${pageSize}}
       body{font-family:'Inter','Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;margin:0;padding:0;color:#000}
-      .page{display:flex;flex-direction:${isLandscape ? 'row' : 'column'};gap:20px;min-height:100vh;padding:20px;box-sizing:border-box;flex-wrap:${isLandscape ? 'wrap' : 'nowrap'};}
-      .card{flex:1;padding:24px;border:2px solid #059669;border-radius:16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);box-shadow:0 8px 32px rgba(0,0,0,0.12);position:relative;overflow:hidden;${isLandscape ? 'max-width: calc(50% - 10px);' : 'page-break-after: always;'}}
+      .page{display:flex;flex-direction:${isLandscape ? 'row' : 'column'};gap:20px;min-height:calc(100vh - 1in);padding:20px;box-sizing:border-box;width:calc(100vw - 1in);${isLandscape ? 'flex-wrap:wrap;' : ''}}
+      .card{${isLandscape ? 'width:calc(50% - 10px);' : 'width:100%;'}padding:24px;border:2px solid #059669;border-radius:16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);box-shadow:0 8px 32px rgba(0,0,0,0.12);position:relative;overflow:hidden;${isLandscape ? '' : 'page-break-after:always;'}min-height:${isLandscape ? 'calc(100vh - 1.5in)' : 'calc(100vh - 1.5in)'};display:flex;flex-direction:column;}
       .card.page-break{page-break-after: always;}
       .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#059669,#10b981,#34d399);}
-      .header{text-align:center;margin-bottom:20px;}
+      .header{text-align:center;margin-bottom:20px;flex-shrink:0;}
       .event{font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:#059669;font-weight:700;margin-bottom:8px;}
       .team-name{font-size:28px;line-height:1.2;font-weight:900;color:#1f2937;margin:0;}
       .table-badge{display:inline-block;font-size:14px;padding:6px 16px;border-radius:50px;background:linear-gradient(135deg,#059669,#10b981);color:#fff;letter-spacing:0.05em;font-weight:700;margin-top:12px;box-shadow:0 2px 8px rgba(5,150,105,0.3);}
-      .content{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;}
+      .content{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;flex-shrink:0;}
       .section{padding:12px;border-left:4px solid #059669;border-radius:0 8px 8px 0;background:#f0fdf4;}
       .section-label{font-size:9px;text-transform:uppercase;color:#065f46;letter-spacing:0.1em;font-weight:700;margin-bottom:4px;}
       .section-value{font-size:14px;color:#1f2937;font-weight:600;}
       .section .detail{font-size:11px;color:#6b7280;margin-top:2px;}
-      .members{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:20px;padding-top:16px;border-top:2px solid #e5e7eb;}
+      .members{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:20px;padding-top:16px;border-top:2px solid #e5e7eb;flex:1;}
       .member{text-align:center;padding:12px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1px solid #a7f3d0;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.05);}
       .member-role{font-size:8px;text-transform:uppercase;color:#047857;letter-spacing:0.1em;font-weight:700;}
       .member-name{font-size:13px;font-weight:800;color:#1f2937;margin:4px 0;}
       .member-sap{font-size:10px;color:#6b7280;}
-      .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:8px;color:#9ca3af;}
+      .footer{text-align:center;margin-top:auto;padding-top:12px;border-top:1px solid #e5e7eb;font-size:8px;color:#9ca3af;flex-shrink:0;}
     </style></head><body>
       ${teams.map((t, index) => {
         const cardHtml = `<div class="card${isLandscape && (index + 1) % 2 === 0 ? ' page-break' : ''}">
