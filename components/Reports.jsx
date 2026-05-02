@@ -17,7 +17,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
     { key: "p3", label: "Player 3" },
   ];
 
-  const row = (cells, i) => `<tr>${cells.map(c => `<td style="${i % 2 === 0 ? td : tdAlt}">${c ?? "â€”"}</td>`).join("")}</tr>`;
+  const row = (cells, i) => `<tr>${cells.map(c => `<td style="${i % 2 === 0 ? td : tdAlt}">${c ?? "–"}</td>`).join("")}</tr>`;
   const absentList = (t, day) => {
     const roles = ["leader", "p2", "p3"].filter(role => t[role]?.name);
     const absent = roles.filter(role => !(t.memberAttendance?.[role]?.[day])).map(role => t[role].name);
@@ -30,7 +30,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       key,
       label,
       name: team[key].name,
-      sap: team[key].sap || "â€”",
+      sap: team[key].sap || "–",
       day1: !!team.memberAttendance?.[key]?.day1,
       day2: !!team.memberAttendance?.[key]?.day2,
     }));
@@ -93,7 +93,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} â€” Food Distribution</h1>
+    <h1>${settings.eventName} – Food Distribution</h1>
     <p class="meta">Generated: ${now}</p>
     <table>
       <thead><tr>
@@ -110,12 +110,12 @@ function generatePDFHTML(type, teams, settings, options = {}) {
           i + 1,
           t.teamName,
           t.leader.name,
-          t.tableNumber ? `T-${t.tableNumber}` : "â€”",
-          t.attendance?.day1 ? "âœ“" : "âœ—",
-          `<span style="color:${t.food?.day1 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day1 ? "âœ“ Given" : "âœ— Not Given"}</span>`,
+          t.tableNumber ? `T-${t.tableNumber}` : "–",
+          t.attendance?.day1 ? "✓" : "✗",
+          `<span style="color:${t.food?.day1 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day1 ? "✓ Given" : "✗ Not Given"}</span>`,
           ...(showDay2 ? [
-            t.attendance?.day2 ? "âœ“" : "âœ—",
-            `<span style="color:${t.food?.day2 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day2 ? "âœ“ Given" : "âœ— Not Given"}</span>`
+            t.attendance?.day2 ? "✓" : "✗",
+            `<span style="color:${t.food?.day2 ? "#22c55e" : "#f87171"};font-weight:600">${t.food?.day2 ? "✓ Given" : "✗ Not Given"}</span>`
           ] : []),
         ], i)).join("")}
       </tbody>
@@ -133,7 +133,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
         t.p3?.name ? { role: "Player 3", ...t.p3 } : null,
       ].filter(Boolean);
       players.forEach(p => {
-        rows.push(row([idx++, t.teamName, p.role, p.name, p.sap, p.email || "â€”", t.campus?.split(" ").slice(0, 2).join(" "), t.semester, t.tableNumber ? `T-${t.tableNumber}` : "â€”"], idx));
+        rows.push(row([idx++, t.teamName, p.role, p.name, p.sap, p.email || "–", t.campus?.split(" ").slice(0, 2).join(" "), t.semester, t.tableNumber ? `T-${t.tableNumber}` : "–"], idx));
       });
     });
     return `<html><head><meta charset="utf-8"><style>
@@ -143,7 +143,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} â€” Full Player List</h1>
+    <h1>${settings.eventName} – Full Player List</h1>
     <p class="meta">Generated: ${now} | Total Players: ${totalPlayers}</p>
     <table>
       <thead><tr>
@@ -170,7 +170,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} â€” Complete Team Registry</h1>
+    <h1>${settings.eventName} – Complete Team Registry</h1>
     <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
     <table>
       <thead><tr>
@@ -195,14 +195,14 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       <tbody>
         ${teams.map((t, i) => row([
           i + 1, t.teamName, t.campus?.split(" ").slice(0, 2).join(" "), t.semester,
-          t.leader.name, t.leader.sap, t.leader.email, t.leader.phone || "â€”",
-          t.p2?.name || "â€”", t.p2?.sap || "â€”",
-          t.p3?.name || "â€”", t.p3?.sap || "â€”",
-          t.tableNumber ? `T-${t.tableNumber}` : "â€”",
-          t.feeVerified ? "âœ“" : "â³",
-          t.attendance?.day1 ? "âœ“" : "âœ—",
-          t.attendance?.day2 ? "âœ“" : "âœ—",
-          t.notes || "â€”",
+          t.leader.name, t.leader.sap, t.leader.email, t.leader.phone || "–",
+          t.p2?.name || "–", t.p2?.sap || "–",
+          t.p3?.name || "–", t.p3?.sap || "–",
+          t.tableNumber ? `T-${t.tableNumber}` : "–",
+          t.feeVerified ? "✓" : "⊘",
+          t.attendance?.day1 ? "✓" : "✗",
+          t.attendance?.day2 ? "✓" : "✗",
+          t.notes || "–",
         ], i)).join("")}
       </tbody>
     </table>
@@ -218,7 +218,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       th,td{border:1px solid #1e293b}
       .strong{font-weight:700;color:#0f172a}
     </style></head><body>
-    <h1>${settings.eventName} â€” CTFd Credentials</h1>
+    <h1>${settings.eventName} – CTFd Credentials</h1>
     <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
     <table>
       <thead><tr>
@@ -238,10 +238,10 @@ function generatePDFHTML(type, teams, settings, options = {}) {
           if (t.ctfdAccount?.p3) members.push({ ...t.ctfdAccount.p3, role: "Player 3", displayName: t.ctfdAccount.p3.name || t.p3?.name });
           return members.map((m, idx) => row([
             idx === 0 ? t.teamName : "",
-            m.displayName || m.name || "â€”",
+            m.displayName || m.name || "–",
             m.role,
-            m.sap || "â€”",
-            m.email || "â€”",
+            m.sap || "–",
+            m.email || "–",
             m.username,
             m.password,
           ], idx));
@@ -259,7 +259,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #1e293b}
     </style></head><body>
-    <h1>${settings.eventName} â€” Absent Players Report</h1>
+    <h1>${settings.eventName} – Absent Players Report</h1>
     <p class="meta">Generated: ${now} | Teams: ${teams.length}</p>
     <table>
       <thead><tr>
@@ -273,7 +273,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
         ${teams.map((t, i) => row([
           i + 1,
           t.teamName,
-          t.tableNumber ? `T-${t.tableNumber}` : "â€”",
+          t.tableNumber ? `T-${t.tableNumber}` : "–",
           absentList(t, "day1"),
           ...(showDay2 ? [absentList(t, "day2")] : []),
         ], i)).join("")}
@@ -284,78 +284,73 @@ function generatePDFHTML(type, teams, settings, options = {}) {
 
   if (type === "table_card") {
     const isLandscape = orientation === 'landscape';
-    const cardsPerPage = isLandscape ? 2 : 1;
-    const pageSize = isLandscape ? 'A4 landscape' : 'A4';
     
     return `<html><head><meta charset="utf-8"><style>
-      @page{margin:0.5in;size:${pageSize}}
-      body{font-family:'Inter','Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;margin:0;padding:0;color:#000}
-      .page{display:flex;flex-direction:${isLandscape ? 'row' : 'column'};gap:20px;min-height:calc(100vh - 1in);padding:20px;box-sizing:border-box;width:calc(100vw - 1in);${isLandscape ? 'flex-wrap:wrap;' : ''}}
-      .card{${isLandscape ? 'width:calc(50% - 10px);' : 'width:100%;'}padding:24px;border:2px solid #059669;border-radius:16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);box-shadow:0 8px 32px rgba(0,0,0,0.12);position:relative;overflow:hidden;${isLandscape ? '' : 'page-break-after:always;'}min-height:${isLandscape ? 'calc(100vh - 1.5in)' : 'calc(100vh - 1.5in)'};display:flex;flex-direction:column;}
-      .card.page-break{page-break-after: always;}
-      .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#059669,#10b981,#34d399);}
-      .header{text-align:center;margin-bottom:20px;flex-shrink:0;}
-      .event{font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:#059669;font-weight:700;margin-bottom:8px;}
-      .team-name{font-size:28px;line-height:1.2;font-weight:900;color:#1f2937;margin:0;}
-      .table-badge{display:inline-block;font-size:14px;padding:6px 16px;border-radius:50px;background:linear-gradient(135deg,#059669,#10b981);color:#fff;letter-spacing:0.05em;font-weight:700;margin-top:12px;box-shadow:0 2px 8px rgba(5,150,105,0.3);}
-      .content{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;flex-shrink:0;}
-      .section{padding:12px;border-left:4px solid #059669;border-radius:0 8px 8px 0;background:#f0fdf4;}
-      .section-label{font-size:9px;text-transform:uppercase;color:#065f46;letter-spacing:0.1em;font-weight:700;margin-bottom:4px;}
-      .section-value{font-size:14px;color:#1f2937;font-weight:600;}
-      .section .detail{font-size:11px;color:#6b7280;margin-top:2px;}
-      .members{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:20px;padding-top:16px;border-top:2px solid #e5e7eb;flex:1;}
-      .member{text-align:center;padding:12px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1px solid #a7f3d0;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.05);}
-      .member-role{font-size:8px;text-transform:uppercase;color:#047857;letter-spacing:0.1em;font-weight:700;}
-      .member-name{font-size:13px;font-weight:800;color:#1f2937;margin:4px 0;}
-      .member-sap{font-size:10px;color:#6b7280;}
-      .footer{text-align:center;margin-top:auto;padding-top:12px;border-top:1px solid #e5e7eb;font-size:8px;color:#9ca3af;flex-shrink:0;}
+      *{margin:0;padding:0;box-sizing:border-box}
+      @page{${isLandscape ? 'size:A4 landscape;margin:0.3in;' : 'size:A4 portrait;margin:0.4in;'}}
+      @media print{body{margin:0;padding:0}}
+      html,body{width:100%;height:100%;background:#fff}
+      body{font-family:'Segoe UI','Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}
+      .container{display:grid;grid-template-columns:${isLandscape ? '1fr 1fr' : '1fr'};gap:${isLandscape ? '16px' : '20px'};padding:0;width:100%;${isLandscape ? 'height:calc(100vh - 0.6in)' : 'min-height:calc(100vh - 0.8in)'}}
+      .card{display:flex;flex-direction:column;padding:20px;border:2.5px solid #059669;border-radius:12px;background:linear-gradient(135deg,#ffffff 0%,#f0fdf4 100%);box-shadow:0 4px 12px rgba(5,150,105,0.15);position:relative;page-break-inside:avoid;break-inside:avoid}
+      .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);border-radius:9px 9px 0 0}
+      .header{text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid rgba(5,150,105,0.2)}
+      .event{font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:#059669;font-weight:700;margin-bottom:6px}
+      .team-name{font-size:24px;line-height:1.15;font-weight:900;color:#0f172a;margin:4px 0 8px;letter-spacing:-0.5px}
+      .table-badge{display:inline-block;font-size:12px;padding:5px 14px;border-radius:20px;background:#059669;color:#fff;letter-spacing:0.04em;font-weight:700;box-shadow:0 2px 6px rgba(5,150,105,0.3)}
+      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+      .info-box{padding:10px;background:rgba(5,150,105,0.05);border-left:3px solid #059669;border-radius:4px}
+      .info-label{font-size:8px;text-transform:uppercase;color:#059669;letter-spacing:0.1em;font-weight:700;margin-bottom:3px}
+      .info-value{font-size:12px;color:#0f172a;font-weight:700}
+      .info-detail{font-size:9px;color:#64748b;margin-top:1px}
+      .members{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:2px}
+      .member-card{text-align:center;padding:10px 8px;background:linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%);border:1.5px solid #a7f3d0;border-radius:8px;display:flex;flex-direction:column;justify-content:center}
+      .member-role{font-size:7px;text-transform:uppercase;color:#059669;letter-spacing:0.08em;font-weight:800;margin-bottom:3px}
+      .member-name{font-size:11px;font-weight:800;color:#0f172a;line-height:1.2;margin-bottom:2px}
+      .member-sap{font-size:8px;color:#64748b;font-weight:600}
+      .footer{font-size:7px;color:#94a3b8;text-align:center;margin-top:auto;padding-top:10px;border-top:1px solid rgba(5,150,105,0.15)}
+      @media print{
+        .container{gap:${isLandscape ? '12px' : '16px'};padding:0}
+        .card{margin:0;padding:18px}
+      }
     </style></head><body>
+    <div class="container">
       ${teams.map((t, index) => {
-        const cardHtml = `<div class="card${isLandscape && (index + 1) % 2 === 0 ? ' page-break' : ''}">
+        const members = [
+          t.leader?.name ? { role: 'LEADER', name: t.leader.name, sap: t.leader.sap || '–' } : null,
+          t.p2?.name ? { role: 'PLAYER 2', name: t.p2.name, sap: t.p2.sap || '–' } : null,
+          t.p3?.name ? { role: 'PLAYER 3', name: t.p3.name, sap: t.p3.sap || '–' } : null,
+        ].filter(Boolean);
+
+        return `<div class="card">
           <div class="header">
-            <div class="event">${settings.eventName || "CYBER INFINITY CTF"}</div>
-            <h1 class="team-name">${t.teamName}</h1>
-            <div class="table-badge">TABLE ${t.tableNumber || "—"}</div>
+            <div class="event">${settings.eventName || "CTF 2026"}</div>
+            <div class="team-name">${t.teamName}</div>
+            <div class="table-badge">TABLE ${t.tableNumber || "–"}</div>
           </div>
-          <div class="content">
-            <div class="section">
-              <div class="section-label">Team Leader</div>
-              <div class="section-value">${t.leader.name || "—"}</div>
-              <div class="detail">SAP: ${t.leader.sap || "—"}</div>
+          <div class="info-grid">
+            <div class="info-box">
+              <div class="info-label">Team Lead</div>
+              <div class="info-value">${t.leader.name || "–"}</div>
+              <div class="info-detail">SAP: ${t.leader.sap || "–"}</div>
             </div>
-            <div class="section">
-              <div class="section-label">Campus & Semester</div>
-              <div class="section-value">${t.campus?.split(" ").slice(0,2).join(" ") || "—"}</div>
-              <div class="detail">Sem: ${t.semester || "—"}</div>
+            <div class="info-box">
+              <div class="info-label">Campus/Sem</div>
+              <div class="info-value">${t.campus?.split(" ").slice(0,2).join(" ") || "–"}</div>
+              <div class="info-detail">Sem: ${t.semester || "–"}</div>
             </div>
           </div>
           <div class="members">
-            ${t.leader?.name ? `<div class="member">
-              <div class="member-role">Leader</div>
-              <div class="member-name">${t.leader.name}</div>
-              <div class="member-sap">${t.leader.sap || "—"}</div>
-            </div>` : ""}
-            ${t.p2?.name ? `<div class="member">
-              <div class="member-role">Player 2</div>
-              <div class="member-name">${t.p2.name}</div>
-              <div class="member-sap">${t.p2.sap || "—"}</div>
-            </div>` : ""}
-            ${t.p3?.name ? `<div class="member">
-              <div class="member-role">Player 3</div>
-              <div class="member-name">${t.p3.name}</div>
-              <div class="member-sap">${t.p3.sap || "—"}</div>
-            </div>` : ""}
+            ${members.map(m => `<div class="member-card">
+              <div class="member-role">${m.role}</div>
+              <div class="member-name">${m.name}</div>
+              <div class="member-sap">${m.sap}</div>
+            </div>`).join("")}
           </div>
           <div class="footer">Generated: ${now} • Cyber Infinity CTF 2026</div>
         </div>`;
-        
-        if (index % cardsPerPage === 0) {
-          return `<div class="page">${cardHtml}`;
-        } else {
-          return `${cardHtml}</div>`;
-        }
       }).join("")}
-      ${teams.length % cardsPerPage !== 0 ? '</div>' : ''}
+    </div>
     </body></html>`;
   }
 
@@ -394,11 +389,11 @@ function generatePDFHTML(type, teams, settings, options = {}) {
           <div class="row">
             <div>
               <div class="label">Leader</div>
-              <div class="value">${t.leader.name || "â€”"}</div>
+              <div class="value">${t.leader.name || "–"}</div>
             </div>
             <div>
               <div class="label">Leader SAP</div>
-              <div class="value">${t.leader.sap || "â€”"}</div>
+              <div class="value">${t.leader.sap || "–"}</div>
             </div>
           </div>
           <div class="row">
@@ -415,7 +410,7 @@ function generatePDFHTML(type, teams, settings, options = {}) {
               return `<div class="member">
                 <div class="member-title">${role === "leader" ? "Leader" : role === "p2" ? "Player 2" : "Player 3"}</div>
                 <div class="member-name">${player.name}</div>
-                <div class="member-note">SAP: ${player.sap || "â€”"}</div>
+                <div class="member-note">SAP: ${player.sap || "–"}</div>
                 <div class="member-note">D1: <span class="${status1}">${status1}</span></div>
                 ${showDay2 ? `<div class="member-note">D2: <span class="${status2}">${status2}</span></div>` : ""}
               </div>`;
