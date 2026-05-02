@@ -1,10 +1,12 @@
 ﻿// components/Reports.jsx
+import { useState } from "react";
 import { FileDown, Printer, BarChart3 } from "lucide-react";
 import toast from "react-hot-toast";
 
-function generatePDFHTML(type, teams, settings) {
+function generatePDFHTML(type, teams, settings, options = {}) {
   const now = new Date().toLocaleString("en-PK");
   const showDay2 = settings.numberOfDays >= 2;
+  const orientation = options.orientation || 'portrait';
   const th = `background:#0d9488;color:#fff;padding:8px 10px;text-align:left;font-size:11px;border:1px solid #0d9488;white-space:nowrap`;
   const td = `padding:7px 10px;font-size:11px;border:1px solid #e2e8f0;vertical-align:top`;
   const tdAlt = `padding:7px 10px;font-size:11px;border:1px solid #e2e8f0;background:#f8fafc;vertical-align:top`;
@@ -281,62 +283,79 @@ function generatePDFHTML(type, teams, settings) {
   }
 
   if (type === "table_card") {
+    const isLandscape = orientation === 'landscape';
+    const cardsPerPage = isLandscape ? 2 : 1;
+    const pageSize = isLandscape ? 'A4 landscape' : 'A4';
+    
     return `<html><head><meta charset="utf-8"><style>
-      @page{margin:0.5in;size:A4}
-      body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;margin:0;padding:0;color:#000}
-      .card{width:100%;page-break-after:always;margin-bottom:24px;padding:28px;border:2px solid #0d9488;border-radius:12px;background:#f9fafb;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
-      .header{text-align:center;margin-bottom:20px;border-bottom:2px solid #0d9488;padding-bottom:12px}
-      .event{font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:#0d9488;font-weight:600}
-      .team-name{font-size:32px;line-height:1.1;font-weight:900;color:#000;margin:8px 0 0 0}
-      .table-badge{display:inline-block;font-size:16px;padding:8px 16px;border-radius:999px;background:#0d9488;color:#fff;letter-spacing:0.1em;font-weight:700;margin-top:8px}
-      .content{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-      .section{padding:12px;border-left:3px solid #0d9488}
-      .section-label{font-size:10px;text-transform:uppercase;color:#666;letter-spacing:0.15em;font-weight:600;margin-bottom:6px}
-      .section-value{font-size:14px;color:#000;font-weight:500}
-      .members{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb}
-      .member{text-align:center;padding:10px;background:#f0f9ff;border:1px solid #bfdbfe;border-radius:8px}
-      .member-role{font-size:9px;text-transform:uppercase;color:#0369a1;letter-spacing:0.1em;font-weight:600}
-      .member-name{font-size:12px;font-weight:700;color:#000;margin:4px 0}
-      .member-sap{font-size:10px;color:#666}
-      .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:9px;color:#999}
+      @page{margin:0.5in;size:${pageSize}}
+      body{font-family:'Inter','Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;margin:0;padding:0;color:#000}
+      .page{display:flex;flex-direction:${isLandscape ? 'row' : 'column'};gap:20px;min-height:100vh;padding:20px;box-sizing:border-box;flex-wrap:${isLandscape ? 'wrap' : 'nowrap'};}
+      .card{flex:1;padding:24px;border:2px solid #059669;border-radius:16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);box-shadow:0 8px 32px rgba(0,0,0,0.12);position:relative;overflow:hidden;${isLandscape ? 'max-width: calc(50% - 10px);' : 'page-break-after: always;'}}
+      .card.page-break{page-break-after: always;}
+      .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#059669,#10b981,#34d399);}
+      .header{text-align:center;margin-bottom:20px;}
+      .event{font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:#059669;font-weight:700;margin-bottom:8px;}
+      .team-name{font-size:28px;line-height:1.2;font-weight:900;color:#1f2937;margin:0;}
+      .table-badge{display:inline-block;font-size:14px;padding:6px 16px;border-radius:50px;background:linear-gradient(135deg,#059669,#10b981);color:#fff;letter-spacing:0.05em;font-weight:700;margin-top:12px;box-shadow:0 2px 8px rgba(5,150,105,0.3);}
+      .content{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;}
+      .section{padding:12px;border-left:4px solid #059669;border-radius:0 8px 8px 0;background:#f0fdf4;}
+      .section-label{font-size:9px;text-transform:uppercase;color:#065f46;letter-spacing:0.1em;font-weight:700;margin-bottom:4px;}
+      .section-value{font-size:14px;color:#1f2937;font-weight:600;}
+      .section .detail{font-size:11px;color:#6b7280;margin-top:2px;}
+      .members{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:20px;padding-top:16px;border-top:2px solid #e5e7eb;}
+      .member{text-align:center;padding:12px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1px solid #a7f3d0;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.05);}
+      .member-role{font-size:8px;text-transform:uppercase;color:#047857;letter-spacing:0.1em;font-weight:700;}
+      .member-name{font-size:13px;font-weight:800;color:#1f2937;margin:4px 0;}
+      .member-sap{font-size:10px;color:#6b7280;}
+      .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:8px;color:#9ca3af;}
     </style></head><body>
-      ${teams.map(t => `<div class="card">
-        <div class="header">
-          <div class="event">${settings.eventName || "CTF"}</div>
-          <h1 class="team-name">${t.teamName}</h1>
-          <div class="table-badge">TABLE ${t.tableNumber || "â€”"}</div>
-        </div>
-        <div class="content">
-          <div class="section">
-            <div class="section-label">Leader</div>
-            <div class="section-value">${t.leader.name || "â€”"}</div>
-            <div style="font-size:10px;color:#666;margin-top:4px">SAP: ${t.leader.sap || "â€”"}</div>
+      ${teams.map((t, index) => {
+        const cardHtml = `<div class="card${isLandscape && (index + 1) % 2 === 0 ? ' page-break' : ''}">
+          <div class="header">
+            <div class="event">${settings.eventName || "CYBER INFINITY CTF"}</div>
+            <h1 class="team-name">${t.teamName}</h1>
+            <div class="table-badge">TABLE ${t.tableNumber || "—"}</div>
           </div>
-          <div class="section">
-            <div class="section-label">Campus</div>
-            <div class="section-value">${t.campus?.split(" ").slice(0,2).join(" ") || "â€”"}</div>
-            <div style="font-size:10px;color:#666;margin-top:4px">Sem: ${t.semester || "â€”"}</div>
+          <div class="content">
+            <div class="section">
+              <div class="section-label">Team Leader</div>
+              <div class="section-value">${t.leader.name || "—"}</div>
+              <div class="detail">SAP: ${t.leader.sap || "—"}</div>
+            </div>
+            <div class="section">
+              <div class="section-label">Campus & Semester</div>
+              <div class="section-value">${t.campus?.split(" ").slice(0,2).join(" ") || "—"}</div>
+              <div class="detail">Sem: ${t.semester || "—"}</div>
+            </div>
           </div>
-        </div>
-        <div class="members">
-          ${t.leader?.name ? `<div class="member">
-            <div class="member-role">Leader</div>
-            <div class="member-name">${t.leader.name}</div>
-            <div class="member-sap">${t.leader.sap}</div>
-          </div>` : ""}
-          ${t.p2?.name ? `<div class="member">
-            <div class="member-role">Player 2</div>
-            <div class="member-name">${t.p2.name}</div>
-            <div class="member-sap">${t.p2.sap}</div>
-          </div>` : ""}
-          ${t.p3?.name ? `<div class="member">
-            <div class="member-role">Player 3</div>
-            <div class="member-name">${t.p3.name}</div>
-            <div class="member-sap">${t.p3.sap}</div>
-          </div>` : ""}
-        </div>
-        <div class="footer">Generated: ${now}</div>
-      </div>`).join("")}
+          <div class="members">
+            ${t.leader?.name ? `<div class="member">
+              <div class="member-role">Leader</div>
+              <div class="member-name">${t.leader.name}</div>
+              <div class="member-sap">${t.leader.sap || "—"}</div>
+            </div>` : ""}
+            ${t.p2?.name ? `<div class="member">
+              <div class="member-role">Player 2</div>
+              <div class="member-name">${t.p2.name}</div>
+              <div class="member-sap">${t.p2.sap || "—"}</div>
+            </div>` : ""}
+            ${t.p3?.name ? `<div class="member">
+              <div class="member-role">Player 3</div>
+              <div class="member-name">${t.p3.name}</div>
+              <div class="member-sap">${t.p3.sap || "—"}</div>
+            </div>` : ""}
+          </div>
+          <div class="footer">Generated: ${now} • Cyber Infinity CTF 2026</div>
+        </div>`;
+        
+        if (index % cardsPerPage === 0) {
+          return `<div class="page">${cardHtml}`;
+        } else {
+          return `${cardHtml}</div>`;
+        }
+      }).join("")}
+      ${teams.length % cardsPerPage !== 0 ? '</div>' : ''}
     </body></html>`;
   }
 
@@ -427,6 +446,7 @@ function openPrint(html) {
 }
 
 export default function Reports({ teams, settings }) {
+  const [tableCardOrientation, setTableCardOrientation] = useState('portrait');
   const totalPlayers = teams.reduce((count, team) => {
     return count + ["leader", "p2", "p3"].filter(role => team[role]?.name).length;
   }, 0);
@@ -434,16 +454,16 @@ export default function Reports({ teams, settings }) {
     { key: "attendance", title: "Attendance Report", desc: "All teams with Day 1 & Day 2 check-in times and fee status", icon: "AR" },
     { key: "food", title: "Food Distribution", desc: "Which teams received food per day", icon: "FD" },
     { key: "absent_members", title: "Absent Members", desc: "Day-wise absent players per team", icon: "AM" },
-    { key: "table_card", title: "Table Cards", desc: "Simple print-ready cards for placing on registration tables", icon: "TC" },
+    { key: "table_card", title: "Table Cards", desc: "Professional print-ready cards for tables - Portrait (1/page) or Landscape (2/page)", icon: "TC" },
     { key: "team_cards", title: "Attendance Cards", desc: "Modern cyber cards with attendance & member status", icon: "AC" },
     { key: "credentials", title: "CTFd Credentials", desc: "Username/password list for registered CTFd users", icon: "ID" },
     { key: "players", title: "Full Player List", desc: "Individual player rows with SAP IDs and emails", icon: "PL" },
     { key: "teams_full", title: "Complete Registry", desc: "All fields including notes, table, fee, attendance", icon: "CR" },
   ];
 
-  const handlePrint = (key) => {
+  const handlePrint = (key, options = {}) => {
     if (!teams.length) { toast.error("No teams to export"); return; }
-    const html = generatePDFHTML(key, teams, settings);
+    const html = generatePDFHTML(key, teams, settings, options);
     openPrint(html);
     toast.success("Print dialog opened - Save as PDF from print menu");
   };
@@ -524,12 +544,31 @@ export default function Reports({ teams, settings }) {
               </div>
               <p className="text-xs text-slate-500">{r.desc}</p>
             </div>
-            <button
-              onClick={() => handlePrint(r.key)}
-              className="btn-cyber text-xs py-1.5 flex-shrink-0"
-            >
-              <Printer size={12} /> Print / PDF
-            </button>
+            {r.key === 'table_card' ? (
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                <select
+                  value={tableCardOrientation}
+                  onChange={(e) => setTableCardOrientation(e.target.value)}
+                  className="cyber-input text-xs py-1 px-2 w-24"
+                >
+                  <option value="portrait">Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+                <button
+                  onClick={() => handlePrint(r.key, { orientation: tableCardOrientation })}
+                  className="btn-cyber text-xs py-1.5"
+                >
+                  <Printer size={12} /> Print / PDF
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => handlePrint(r.key)}
+                className="btn-cyber text-xs py-1.5 flex-shrink-0"
+              >
+                <Printer size={12} /> Print / PDF
+              </button>
+            )}
           </div>
         ))}
       </div>

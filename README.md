@@ -45,7 +45,7 @@ This project is designed for organizers who need to manage an in-person CTF from
 
 - Assign teams to physical table numbers.
 - Configure the total number of available tables.
-- Generate print-ready table cards and attendance cards for on-site use.
+- Generate professional print-ready table cards (portrait/landscape) and attendance cards for on-site use.
 
 ### Communication
 
@@ -70,7 +70,7 @@ This project is designed for organizers who need to manage an in-person CTF from
 - Generate print/PDF outputs for attendance.
 - Generate print/PDF outputs for food distribution.
 - Generate print/PDF outputs for absent members.
-- Generate print/PDF outputs for table cards.
+- Generate print/PDF outputs for table cards (professional design, portrait/landscape options).
 - Generate print/PDF outputs for attendance cards.
 - Generate print/PDF outputs for CTFd credentials.
 - Generate print/PDF outputs for the full player list.
